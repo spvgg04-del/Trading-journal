@@ -354,8 +354,10 @@ function fmtV(v, o = {}) {
 const hm = s => { const [h, m] = String(s || "0:0").split(":").map(Number); return (h || 0) + (m || 0) / 60; };
 function sessionOf(t) {
   const s = t.openTime || ""; if (s.length < 16) return "(unbekannt)";
-  const x = hm(s.slice(11, 16)), st = S.settings;
-  if (x < hm(st.sessLondon)) return "Asien"; if (x < hm(st.sessOverlap)) return "London"; if (x < hm(st.sessNY)) return "London/NY"; return "New York";
+  const st = S.settings; let x;
+  try { const p = new Intl.DateTimeFormat("en-GB", { timeZone: st.sessTZ || "Europe/London", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(toDate(s)); x = +p.find(q => q.type === "hour").value + (+p.find(q => q.type === "minute").value) / 60; }
+  catch (e) { x = hm(s.slice(11, 16)); }
+  if (x < hm(st.lonOpen || "08:00")) return "Asien"; if (x < hm(st.ovOpen || "13:30")) return "London"; if (x < hm(st.nyOpen || "16:30")) return "London/NY"; return "New York";
 }
 const SESSIONS = ["Asien", "London", "London/NY", "New York", "(unbekannt)"];
 
@@ -413,7 +415,7 @@ const DEFAULT_SETTINGS = {
   tags: ["London", "New York", "Asien", "Trendtag", "Rangetag", "Nach News", "A+ Setup"],
   mistakes: ["FOMO", "Zu früh eingestiegen", "SL verschoben", "Zu früh geschlossen", "Revenge-Trade", "Overtrading", "Gegen Plan", "Kein Setup", "Position zu groß", "News ignoriert"],
   moods: ["Fokussiert", "Ruhig", "Neutral", "Ungeduldig", "Gestresst", "Müde"],
-  maxTrades: 3, maxLoss: 0, sessLondon: "09:00", sessOverlap: "14:30", sessNY: "17:30",
+  maxTrades: 3, maxLoss: 0, lonOpen: "08:00", ovOpen: "13:30", nyOpen: "16:30", sessTZ: "Europe/London",
   weekQuestions: ["Was lief diese Woche gut?", "Welche Fehler haben sich wiederholt?", "Habe ich meine Regeln und Limits eingehalten?", "Mein Fokus für nächste Woche:"]
 };
 const S = {
@@ -649,7 +651,8 @@ async function delMany(col, ids) {
 const getTrade = id => S.trades.find(t => t.id === id);
 const getPb = id => S.playbooks.find(p => p.id === id);
 function patchTrade(id, patch) { const t = getTrade(id); if (!t) return; return saveDoc("trades", id, { ...t, ...patch }); }
-function patchSettings(patch) { return saveDoc("meta", "settings", { ...S.settings, ...patch }); }
+function localTZ() { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (e) { return ""; } }
+function patchSettings(patch) { return saveDoc("meta", "settings", { ...S.settings, ...patch, localTZ: localTZ() }); }
 function patchDay(date, patch) { return saveDoc("days", date, { ...(S.days[date] || {}), ...patch }); }
 
 /* ========= CSV / IBKR import ========= */
@@ -952,6 +955,7 @@ function viewKalender() {
 }
 
 /* ========= Journal (Tagebuch) ========= */
+const taRows = t => Math.min(28, Math.max(4, Math.ceil(String(t || "").length / 90) + (String(t || "").match(/\n/g) || []).length));
 function dayCard(date) {
   const ts = S.trades.filter(t => t.date === date).sort(byClose); const st = stats(ts); const dd = S.days[date] || {};
   const moods = S.settings.moods || DEFAULT_SETTINGS.moods;
@@ -962,8 +966,8 @@ function dayCard(date) {
    ${dayNewsHTML(date)}
    ${aiNotesHTML(dd.aiNotes, "days", date)}
    <div class="grid g-2">
-    <label class="f">Plan vor der Session<textarea class="inp" id="plan-${date}" data-ch="dayText" data-d="${date}" data-k="plan" placeholder="Bias, Zonen, News, Szenarien …">${esc(dd.plan || "")}</textarea></label>
-    <label class="f">Rückblick nach der Session<textarea class="inp" id="rev-${date}" data-ch="dayText" data-d="${date}" data-k="review" placeholder="Was lief gut? Was mache ich morgen anders?">${esc(dd.review || "")}</textarea></label>
+    <label class="f">Plan vor der Session<textarea class="inp" id="plan-${date}" data-ch="dayText" data-d="${date}" data-k="plan" rows="${taRows(dd.plan)}" placeholder="Bias, Zonen, News, Szenarien …">${esc(dd.plan || "")}</textarea></label>
+    <label class="f">Rückblick nach der Session<textarea class="inp" id="rev-${date}" data-ch="dayText" data-d="${date}" data-k="review" rows="${taRows(dd.review)}" placeholder="Was lief gut? Was mache ich morgen anders?">${esc(dd.review || "")}</textarea></label>
    </div>
    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center"><span class="muted" style="font-size:12px;font-weight:600">Stimmung</span><div class="chips">${moods.map(m => `<button class="chip" data-act="mood" data-d="${date}" data-v="${esc(m)}" aria-pressed="${dd.mood === m}">${esc(m)}</button>`).join("")}</div></div>
   </div>`;
@@ -1321,11 +1325,11 @@ function viewSettings() {
     <label class="f">Zeitverschiebung Import (Std)<input class="inp num" type="number" step="1" id="s-tz" data-ch="setNum" data-k="tzShift" value="${esc(s.tzShift || 0)}"></label>
    </div><div class="faint" style="font-size:12px;margin-top:8px">0 schaltet ein Limit aus. Tage über dem Limit werden im Kalender und Tagebuch markiert.</div>
    ${s.startBalance ? `<div class="banner" style="margin-top:14px">Kontostand laut Journal: <b class="num" style="color:var(--fg)">${fmtMoney((+s.startBalance) + S.trades.reduce((a, t) => a + (+t.net || 0), 0))}</b></div>` : ""}</div>
-   <div class="card"><h3>Sessions <span class="hint">Beginn in deiner Ortszeit</span></h3><div class="formgrid">
-    <label class="f">London<input class="inp" type="time" id="s-lon" data-ch="setStr" data-k="sessLondon" value="${esc(s.sessLondon)}"></label>
-    <label class="f">London/NY-Überschneidung<input class="inp" type="time" id="s-ov" data-ch="setStr" data-k="sessOverlap" value="${esc(s.sessOverlap)}"></label>
-    <label class="f">New York<input class="inp" type="time" id="s-ny" data-ch="setStr" data-k="sessNY" value="${esc(s.sessNY)}"></label>
-   </div><div class="faint" style="font-size:12px;margin-top:8px">Alles vor London zählt als Asien. Maßgeblich ist die Eröffnungszeit des Trades.</div></div></div>`;
+   <div class="card"><h3>Sessions <span class="hint">Beginn in Londoner Zeit</span></h3><div class="formgrid">
+    <label class="f">London<input class="inp" type="time" id="s-lon" data-ch="setStr" data-k="lonOpen" value="${esc(s.lonOpen || "08:00")}"></label>
+    <label class="f">London/NY-Überschneidung<input class="inp" type="time" id="s-ov" data-ch="setStr" data-k="ovOpen" value="${esc(s.ovOpen || "13:30")}"></label>
+    <label class="f">New York<input class="inp" type="time" id="s-ny" data-ch="setStr" data-k="nyOpen" value="${esc(s.nyOpen || "16:30")}"></label>
+   </div><div class="faint" style="font-size:12px;margin-top:8px">Die Zeiten gelten in Londoner Zeit, damit Sommer- und Winterzeit automatisch stimmen, egal in welcher Zeitzone du sitzt. Alles vor London zählt als Asien. Maßgeblich ist die Eröffnungszeit des Trades.</div></div></div>`;
   h += `<div class="grid g-2"><div class="card"><h3>Tags <span class="hint">eine pro Zeile</span></h3><textarea class="inp" id="s-tags" data-ch="setList" data-k="tags" style="min-height:160px">${esc((s.tags || []).join("\n"))}</textarea></div>
    <div class="card"><h3>Fehler <span class="hint">einer pro Zeile</span></h3><textarea class="inp" id="s-mis" data-ch="setList" data-k="mistakes" style="min-height:160px">${esc((s.mistakes || []).join("\n"))}</textarea></div>
    <div class="card"><h3>Fragen für den Wochenrückblick <span class="hint">eine pro Zeile</span></h3><textarea class="inp" id="s-wq" data-ch="setList" data-k="weekQuestions" style="min-height:120px">${esc((s.weekQuestions || []).join("\n"))}</textarea></div>
@@ -1560,7 +1564,7 @@ const ACT = {
   async demo() { if (S.busy) return; S.busy = "demo"; render(); const ts = demoTrades(); await saveMany("trades", ts); S.busy = null; toast(`${ts.length} Demo-Trades geladen`); location.hash = "#dashboard"; render(); },
   async demoDel() { const ts = S.trades.filter(t => t.demo); await delMany("trades", ts.map(t => t.id)); toast("Demo-Daten gelöscht"); render(); },
   expCSV() { saveFile(`trades-${todayStr()}.csv`, "﻿" + tradesCSV(S.trades)); },
-  expJSON() { saveFile(`prime-journal-sicherung-${todayStr()}.json`, JSON.stringify({ app: "prime-journal", exported: new Date().toISOString(), settings: S.settings, playbooks: S.playbooks, days: S.days, weeks: S.weeks, trades: S.trades }, null, 1), "application/json"); },
+  expJSON() { saveFile(`prime-journal-sicherung-${todayStr()}.json`, JSON.stringify({ app: "prime-journal", exported: new Date().toISOString(), settings: S.settings, strategy: S.strategy, playbooks: S.playbooks, days: S.days, weeks: S.weeks, reports: S.reports, trades: S.trades }, null, 1), "application/json"); },
   askDelAll() { S.confirmDel = "all"; render(); },
   async delAll() { S.busy = "del"; render(); const ts = [...S.trades]; await delMany("trades", ts.map(t => t.id)); ts.forEach(t => (t.shots || []).forEach(id => Store.removeShot(id))); S.busy = null; S.confirmDel = null; toast("Alle Trades gelöscht"); render(); }
 };
@@ -1641,6 +1645,8 @@ async function restoreBackup(file) {
     if (d.settings) { await saveMany("meta", [{ id: "settings", ...S.settings, ...d.settings }]); n++; }
     if (Array.isArray(d.playbooks)) { await saveMany("playbooks", d.playbooks.filter(p => p.id && p.name)); n += d.playbooks.length; }
     if (Array.isArray(d.trades)) { await saveMany("trades", d.trades.filter(t => t.id && t.date)); n += d.trades.length; }
+    if (Array.isArray(d.reports)) { await saveMany("reports", d.reports.filter(r => r.id && r.title)); n += d.reports.length; }
+    if (typeof d.strategy === "string" && d.strategy.trim()) { await saveMany("meta", [{ id: "strategy", text: d.strategy }]); n++; }
     for (const col of ["days", "weeks"]) if (d[col] && typeof d[col] === "object") { const l = Object.entries(d[col]).map(([id, v]) => ({ id, ...v })); await saveMany(col, l); n += l.length; }
     toast(`${n} Einträge eingespielt`);
   } catch (e) { toast("Die Datei ist keine gültige Sicherung: " + e.message); }
