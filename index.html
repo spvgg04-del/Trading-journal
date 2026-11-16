@@ -226,6 +226,35 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
 .repitem:hover{background:var(--surface2)}
 .repitem[aria-pressed="true"]{background:var(--accent-soft)}
 @media (max-width:760px){.grid[style*="280px"]{grid-template-columns:minmax(0,1fr)!important}}
+.newnote{position:relative}
+.newnote .menu{position:absolute;right:0;top:calc(100% + 6px);z-index:30;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.18);padding:6px;display:flex;flex-direction:column;min-width:220px}
+.newnote .menu button{border:0;background:none;text-align:left;padding:9px 10px;border-radius:7px;cursor:pointer;font-weight:600;font-size:13px}
+.newnote .menu button:hover{background:var(--surface2)}
+.nb{display:grid;grid-template-columns:240px 300px minmax(0,1fr);gap:14px;align-items:start}
+.nb-folders{padding:8px;display:flex;flex-direction:column;gap:2px;position:sticky;top:12px}
+.nb-f,.nb-i{border:0;background:none;text-align:left;border-radius:8px;cursor:pointer;color:inherit}
+.nb-f{display:flex;justify-content:space-between;gap:8px;padding:8px 10px;font-weight:600;font-size:13px;min-width:0}
+.nb-f span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.nb-f:hover,.nb-i:hover{background:var(--surface2)}
+.nb-f[aria-pressed="true"],.nb-i[aria-pressed="true"]{background:var(--accent-soft)}
+.nb-list{padding:10px;display:flex;flex-direction:column;gap:8px}
+.nb-items{display:flex;flex-direction:column;gap:2px;max-height:calc(100vh - 210px);overflow-y:auto}
+.nb-i{display:flex;flex-direction:column;gap:2px;padding:9px 10px}
+.nb-snip{font-size:12px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.nb-edit{min-height:60vh;display:flex;flex-direction:column}
+.nb-head{display:flex;flex-direction:column;gap:8px}
+.nb-title{font-size:18px;font-weight:700;border-color:transparent;padding-left:4px}
+.nb-meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.nb-tb{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);margin-bottom:10px;position:sticky;top:0;background:var(--surface);z-index:2}
+.nb-body{flex:1;outline:none;min-height:50vh;padding:4px}
+.nb-body:focus{box-shadow:none}
+.md img,.nb-body img{max-width:100%;border-radius:8px;border:1px solid var(--line);margin:6px 0;display:block}
+.md table,.nb-body table{border-collapse:collapse;margin:8px 0;font-size:13px}
+.md td,.md th,.nb-body td,.nb-body th{border:1px solid var(--line);padding:5px 9px;text-align:left}
+.md h2,.nb-body h2{font-size:17px;margin:18px 0 6px}.md h3,.nb-body h3{font-size:14.5px;margin:14px 0 4px}
+.nb-back{display:none}
+@media (max-width:1180px){.nb{grid-template-columns:220px minmax(0,1fr)}.nb-edit{grid-column:1/-1}.nb.has-open .nb-list,.nb.has-open .nb-folders{display:none}.nb.has-open .nb-edit{grid-column:1/-1}.nb-back{display:inline-flex;align-self:flex-start}}
+@media (max-width:700px){.nb{grid-template-columns:minmax(0,1fr)}.nb-folders{position:static;flex-direction:row;overflow-x:auto}.nb-folders .sep,.nb-folders>div:last-child{display:none}.nb-f{white-space:nowrap}}
 @media (prefers-reduced-motion:no-preference){.drawer{animation:slide .18s ease-out}@keyframes slide{from{transform:translateX(24px);opacity:.6}}}
 </style>
 </head>
@@ -426,7 +455,7 @@ const S = {
   tf: { q: "", side: "", result: "", pb: "", tag: "", mis: "" }, tsort: { k: "close", d: -1 },
   openTrade: null, confirmDel: null, pbOpen: null, pbEdit: null, reportDim: "session",
   importPrev: null, lightbox: null, busy: null,
-  unit: "eur", auth: null, authMsg: "", news: [], newsWeeks: {}, newsErr: false, newsAt: 0, newsFilter: "hm", jmode: "days", weeks: {}, reports: [], strategy: "", mcp: null, reportOpen: null
+  unit: "eur", auth: null, authMsg: "", news: [], newsWeeks: {}, newsErr: false, newsAt: 0, newsFilter: "hm", jmode: "days", weeks: {}, reports: [], strategy: "", mcp: null, reportOpen: null, notes: [], noteFolder: null, noteOpen: null, noteQ: "", noteMenu: false
 };
 
 const dstr = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -622,10 +651,11 @@ function setLocal(col, id, data) {
   else if (col === "meta" && id === "settings") S.settings = { ...DEFAULT_SETTINGS, ...data };
   else if (col === "meta" && id === "strategy") S.strategy = data.text || "";
   else if (col === "meta" && id === "mcp") S.mcp = { ...data };
+  else if (col === "notes") { const i = S.notes.findIndex(r => r.id === id); const v = { ...data, id }; if (i >= 0) S.notes[i] = v; else S.notes.push(v); }
   else if (col === "reports") { const i = S.reports.findIndex(r => r.id === id); const v = { ...data, id }; if (i >= 0) S.reports[i] = v; else S.reports.push(v); }
 }
 function applyRows(rows) {
-  S.trades = []; S.playbooks = []; S.days = {}; S.weeks = {}; S.newsWeeks = {}; S.reports = []; S.strategy = ""; S.mcp = null;
+  S.trades = []; S.playbooks = []; S.days = {}; S.weeks = {}; S.newsWeeks = {}; S.reports = []; S.strategy = ""; S.mcp = null; S.notes = [];
   for (const r of rows) { if (dirty.has(r.col + "/" + r.id)) continue; setLocal(r.col, r.id, r.data); }
   for (const k of dirty) { /* lokale, noch nicht gespeicherte Eingaben behalten */ const v = pendingLocal[k]; if (v) setLocal(v.col, v.id, v.data); }
   S.playbooks.sort((a, b) => (a.order ?? 99) - (b.order ?? 99) || String(a.name).localeCompare(String(b.name)));
@@ -638,6 +668,7 @@ function delDoc(col, id) {
   if (col === "playbooks") S.playbooks = S.playbooks.filter(t => t.id !== id);
   if (col === "days") delete S.days[id];
   if (col === "reports") S.reports = S.reports.filter(r => r.id !== id);
+  if (col === "notes") S.notes = S.notes.filter(r => r.id !== id);
   return persist(col + "/" + id, () => Store.del(col, id));
 }
 async function saveMany(col, list) {
@@ -848,13 +879,14 @@ const I = {
   news: '<path d="M12 3a6 6 0 0 0-6 6v4l-2 3h16l-2-3V9a6 6 0 0 0-6-6zM10 19a2 2 0 0 0 4 0"/>',
   playbooks: '<path d="M4 4h6v16H4zM14 4h6v10h-6zM14 18h6"/>',
   reports: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+  notizen: '<path d="M6 3h9l4 4v14H6zM15 3v4h4M9 12h7M9 16h5"/>',
   berichte: '<path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8zM18 15l.9 2.1L21 18l-2.1.9L18 21l-.9-2.1L15 18l2.1-.9z"/>',
   import: '<path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v3h16v-3"/>',
   einstellungen: '<path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/>',
   plus: '<path d="M12 5v14M5 12h14"/>', x: '<path d="M6 6l12 12M18 6 6 18"/>', left: '<path d="M15 18l-6-6 6-6"/>', right: '<path d="M9 18l6-6-6-6"/>', img: '<path d="M4 5h16v14H4zM4 15l4-4 5 5 3-3 4 4"/>', dl: '<path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v3h16v-3"/>'
 };
 const ico = (k, s = 18) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[k]}</svg>`;
-const NAV = [["dashboard", "Dashboard"], ["tagebuch", "Tagebuch"], ["trades", "Trades"], ["kalender", "Kalender"], ["news", "News"], ["playbooks", "Playbooks"], ["reports", "Reports"], ["berichte", "KI-Berichte"], ["import", "Import"], ["einstellungen", "Einstellungen"]];
+const NAV = [["dashboard", "Dashboard"], ["tagebuch", "Tagebuch"], ["trades", "Trades"], ["kalender", "Kalender"], ["news", "News"], ["playbooks", "Playbooks"], ["reports", "Reports"], ["notizen", "Notizen"], ["import", "Import"], ["einstellungen", "Einstellungen"]];
 
 function sideHTML() {
   const st = S.dbState === "loading" ? "Lade Daten …" : S.dbState === "error" ? "Daten konnten nicht geladen werden" : Store.mode === "cloud" ? `Cloud · ${S.trades.length} Trades${Store.email ? " · " + Store.email : ""}` : `Lokal in diesem Browser · ${S.trades.length} Trades`;
@@ -964,6 +996,7 @@ function dayCard(date) {
    ${ts.length ? `<div class="daybody"><div>${sparkline(st.curve.map(c => c.v))}<div class="daystats" style="margin-top:10px"><div>Trades<b>${st.n}</b></div><div>Treffer<b>${fmtPct(st.winRate, 0)}</b></div><div>Profit-Faktor<b>${fmtPF(st.pf)}</b></div><div>Gebühren<b>${fmtMoney(st.fees)}</b></div></div></div>
    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Zeit</th><th>Symbol</th><th>Richtung</th><th>Playbook</th><th class="r">R</th><th class="r">Netto</th></tr></thead><tbody>${ts.map(t => `<tr class="click" data-act="openTrade" data-id="${esc(t.id)}"><td class="num">${fmtTime(t.openTime)}–${fmtTime(t.closeTime)}</td><td><b>${esc(t.symbol)}</b></td><td><span class="pill ${t.side}">${t.side === "long" ? "Long" : "Short"}</span></td><td>${esc(getPb(t.playbook)?.name || "–")}</td><td class="r num">${Rof(t) == null ? "–" : fmtNum(Rof(t), 2)}</td><td class="r num ${cls(t.net)}">${fmtMoney(t.net)}</td></tr>`).join("")}</tbody></table></div></div>` : `<div class="faint">An diesem Tag gibt es keine Trades.</div>`}
    ${dayNewsHTML(date)}
+   ${dayNotesHTML(date)}
    ${aiNotesHTML(dd.aiNotes, "days", date)}
    <div class="grid g-2">
     <label class="f">Plan vor der Session<textarea class="inp" id="plan-${date}" data-ch="dayText" data-d="${date}" data-k="plan" rows="${taRows(dd.plan)}" placeholder="Bias, Zonen, News, Szenarien …">${esc(dd.plan || "")}</textarea></label>
@@ -1284,6 +1317,7 @@ function viewWeeks(jseg) {
     const days = Object.keys(st.daily).sort();
     return `<div class="card day"><div class="dayhead"><h2>KW ${isoWeek(w)} · ${fmtDate(w).slice(0, 6)} – ${fmtDate(we)}</h2><div class="num ${cls(st.net)}" style="font-size:18px;font-weight:700">${ts.length ? fmtV(st.net, { sign: 1 }) : ""}</div></div>
      ${ts.length ? `<div class="daystats"><div>Trades<b>${st.n}</b></div><div>Trefferquote<b>${fmtPct(st.winRate, 0)}</b></div><div>Profit-Faktor<b>${fmtPF(st.pf)}</b></div><div>Grüne Tage<b>${st.dw}/${st.days}</b></div><div>Tage über Limit<b>${days.filter(limitHit).length}</b></div><div>Fehler<b>${ts.reduce((a, t) => a + (t.mistakes || []).length, 0)}</b></div></div>` : `<div class="faint">Keine Trades in dieser Woche.</div>`}
+     ${weekNotesHTML(w, we)}
      ${aiNotesHTML(wd.aiNotes, "weeks", w)}
      <div class="grid g-2">${qs.map((q, i) => `<label class="f">${esc(q)}<textarea class="inp" id="wq-${w}-${i}" data-ch="weekText" data-w="${w}" data-q="${esc(q)}">${esc(ans[q] || "")}</textarea></label>`).join("")}</div></div>`;
   }).join("");
@@ -1361,7 +1395,8 @@ function aiNotesHTML(list, col, id) {
   if (!list || !list.length) return "";
   return `<div class="card ainotes"><h3><span>${ico("berichte", 15)} KI-Notizen</span><span class="hint">${list.length}</span></h3>${list.map((n, i) => `<div class="ainote"><div class="faint" style="font-size:11px;display:flex;justify-content:space-between;gap:8px"><span>${esc(n.source || "KI")} · ${n.at ? fmtDate(n.at.slice(0, 10)) + " " + n.at.slice(11, 16) : ""}</span><button class="btn ghost sm" data-act="delAiNote" data-col="${col}" data-id="${esc(id)}" data-i="${i}" aria-label="KI-Notiz löschen">${ico("x", 12)}</button></div><div class="md">${mdToHtml(n.text)}</div></div>`).join("")}</div>`;
 }
-function viewBerichte() {
+function viewBerichte() { S.noteFolder = "KI-Berichte"; return viewNotizen(); }
+function viewBerichteOld() {
   const list = [...(S.reports || [])].sort((a, b) => String(b.created).localeCompare(String(a.created)));
   const open = list.find(r => r.id === S.reportOpen) || list[0];
   let h = topbar("KI-Berichte", "Wochen- und Monatsberichte, die deine KI über die KI-Anbindung speichert") + banners();
@@ -1441,8 +1476,117 @@ function buildAnyImport(text, name) {
   const known = new Set(S.trades.map(t => t.id)); const fresh = tz.trades.filter(t => !known.has(t.id));
   return { name, kind: "Tradezella", execs: tz.trades.length, dup: tz.trades.length - fresh.length, skipped: tz.skipped, trades: fresh.sort(byClose), openExecs: 0, fx: 0, cols: tz.cols };
 }
+/* ========= Notizen (Notebook) ========= */
+const NOTE_FOLDERS = ["Tageszusammenfassungen", "Wochenrückblick", "Monatsrückblick", "Eigene Analyse", "Learnings", "Checklisten-Feedback", "Mindflow", "Playbook", "KI-Berichte", "Sonstiges"];
+const OK_TAGS = { P: 1, BR: 1, B: 1, STRONG: 1, I: 1, EM: 1, U: 1, H2: 1, H3: 1, H4: 1, UL: 1, OL: 1, LI: 1, BLOCKQUOTE: 1, IMG: 1, A: 1, DIV: 1, SPAN: 1, TABLE: 1, THEAD: 1, TBODY: 1, TR: 1, TD: 1, TH: 1, HR: 1 };
+function sanitizeHTML(html, forSave) {
+  const doc = new DOMParser().parseFromString("<div>" + (html || "") + "</div>", "text/html");
+  const walk = el => {
+    for (const n of [...el.childNodes]) {
+      if (n.nodeType === 3) continue;
+      if (n.nodeType !== 1 || !OK_TAGS[n.tagName]) { if (n.nodeType === 1 && !["SCRIPT", "STYLE", "IFRAME", "OBJECT"].includes(n.tagName)) { walk(n); n.replaceWith(...n.childNodes); } else n.remove(); continue; }
+      for (const a of [...n.attributes]) {
+        const k = a.name.toLowerCase();
+        const keep = (n.tagName === "A" && k === "href" && /^https?:/i.test(a.value)) || (n.tagName === "IMG" && (k === "data-shot" || k === "alt" || (k === "src" && !forSave && /^https:/i.test(a.value) && !n.getAttribute("data-shot"))));
+        if (!keep) n.removeAttribute(a.name);
+      }
+      if (n.tagName === "A") { n.setAttribute("target", "_blank"); n.setAttribute("rel", "noopener"); }
+      if (n.tagName === "IMG" && !n.getAttribute("data-shot") && forSave && !n.getAttribute("src")) { n.remove(); continue; }
+      walk(n);
+    }
+  };
+  walk(doc.body.firstChild);
+  return doc.body.firstChild.innerHTML;
+}
+const noteHTML = n => n.html ? sanitizeHTML(n.html) : n.markdown ? mdToHtml(n.markdown) : "";
+const noteText = n => { const d = document.createElement("div"); d.innerHTML = noteHTML(n); return (d.textContent || "").replace(/\s+/g, " ").trim(); };
+function allNotes() {
+  const rep = (S.reports || []).map(r => ({ ...r, id: "rep:" + r.id, folder: "KI-Berichte", date: r.to || r.from || (r.created || "").slice(0, 10), readonlyReport: true }));
+  return [...S.notes, ...rep];
+}
+function noteFolders() {
+  const used = new Set(allNotes().map(n => n.folder || "Sonstiges"));
+  const custom = S.settings.noteFolders || [];
+  return [...new Set([...NOTE_FOLDERS, ...custom, ...used])].filter(f => used.has(f) || NOTE_FOLDERS.includes(f) || custom.includes(f));
+}
+const sortNotes = (a, b) => String(b.date || b.created || "").localeCompare(String(a.date || a.created || "")) || String(b.created || "").localeCompare(String(a.created || ""));
+
+const TEMPLATES = {
+  tages: { name: "Tageszusammenfassung", folder: "Tageszusammenfassungen", period: "day", html: () => `<h2>Sessionplan</h2><p><b>Session:</b> London</p><p><b>Max. Risiko:</b> ${esc(fmtMoney(10, { dec: 0 }))} · <b>Max. Trades:</b> ${esc(S.settings.maxTrades || 1)} pro Session · <b>Discord:</b> aus</p><h2>Marktbild</h2><p><b>Übergeordnete Struktur (H1/H4):</b> </p><p><b>M5-Trend:</b> </p><p><b>Heute interessant:</b> Trendfortsetzung / Trendwechsel / Reaktion an Zone / RangeFlow</p><h3>Szenario der Session</h3><ul><li><b>Long:</b> </li><li><b>Short:</b> </li><li><b>Range:</b> </li></ul><p><b>Analysebild:</b></p><h2>Live-Checkliste</h2><ul><li>Zone klar?</li><li>Richtung klar?</li><li>Bestätigung klar? „Bestätigung ist valide, weil …“</li><li>M5-Kerze geschlossen?</li></ul><p>4× Ja = Trade. Ein Nein oder unklar = flat.</p><p><b>Entrybild:</b></p><h2>Session Review</h2><p><b>Trade genommen:</b> ja / nein</p><p><b>Entry-Grund:</b> </p><p><b>Hauptfehler:</b> </p><p><b>Was war gut:</b> </p><p><b>Wenn kein Trade – war ein valider Trade da? Warum nicht?</b> </p><p><b>Exitbild:</b></p><h2>Tageslearning</h2><p><b>Ein Satz:</b> </p><p><b>Nächstes Mal:</b> </p>` },
+  analyse: { name: "Pre-Session-Analyse", folder: "Eigene Analyse", period: "day", html: () => `<h2>Analyse vor der Session</h2><p><b>Übergeordnete Struktur (H1/H4):</b> short / long / range</p><p><b>Potenzielle Handelszonen:</b> </p><p><b>M30/M15-Trend:</b> </p><p><b>M5-Trend:</b> </p><h3>Long-Szenario</h3><p>Ich warte auf … Ziel ist …</p><h3>Short-Szenario</h3><p>Ich warte auf … Ziel ist …</p><p><b>News heute:</b> </p><p><b>Bild der Analyse:</b></p>` },
+  woche: { name: "Wochenrückblick", folder: "Wochenrückblick", period: "week", html: () => `<h2>Zahlen der Woche</h2><p><i>Mit „Kennzahlen einfügen“ automatisch füllen.</i></p><h2>Rückblick</h2>${(S.settings.weekQuestions || []).map(q => `<h3>${esc(q)}</h3><p></p>`).join("")}` },
+  monat: { name: "Monatsrückblick", folder: "Monatsrückblick", period: "month", html: () => `<h2>Der Monat in einem Satz</h2><p></p><h2>Zahlen</h2><p><i>Mit „Kennzahlen einfügen“ automatisch füllen.</i></p><h2>Was gut war</h2><ul><li></li></ul><h2>Was schlecht war</h2><ul><li></li></ul><h2>Wiederkehrende Fehler</h2><ul><li></li></ul><h2>Ein Fokus für den nächsten Monat</h2><p></p><h2>Leitsatz</h2><p></p>` },
+  leer: { name: "Leere Notiz", folder: null, period: null, html: () => "<p></p>" }
+};
+function periodOf(n) {
+  const d = n.date || todayStr();
+  if (n.period === "week") { const m = mondayOf(d); const e = parseD(m); e.setDate(e.getDate() + 6); return [m, dstr(e)]; }
+  if (n.period === "month") { const [y, mo] = d.split("-").map(Number); return [`${y}-${pad(mo)}-01`, dstr(new Date(y, mo, 0))]; }
+  return [d, d];
+}
+function statsTableHTML(from, to) {
+  const ts = S.trades.filter(t => t.date >= from && t.date <= to); const u = S.unit; S.unit = "eur"; const st = stats(ts); S.unit = u;
+  const row = (k, v) => `<tr><td>${k}</td><td>${v}</td></tr>`;
+  return `<table><thead><tr><th>Kennzahl (${esc(fmtDate(from))}${from !== to ? " – " + esc(fmtDate(to)) : ""})</th><th>Wert</th></tr></thead><tbody>${row("Trades", st.n)}${row("Netto-P&amp;L", esc(fmtMoney(st.net)))}${row("Trefferquote", esc(fmtPct(st.winRate)))}${row("Profit-Faktor", esc(fmtPF(st.pf)))}${row("Ø Gewinn / Ø Verlust", esc(fmtMoney(st.avgWin)) + " / " + esc(fmtMoney(st.avgLoss)))}${row("Ø R", st.avgR == null ? "–" : esc(fmtNum(st.avgR, 2)))}${row("Gebühren", esc(fmtMoney(st.fees)))}${row("Fehler markiert", ts.reduce((a, t) => a + (t.mistakes || []).length, 0))}</tbody></table>`;
+}
+
+function viewNotizen() {
+  const folders = noteFolders(); const all = allNotes();
+  if (!S.noteFolder) S.noteFolder = "Alle";
+  const q = (S.noteQ || "").toLowerCase();
+  const list = all.filter(n => (S.noteFolder === "Alle" || (n.folder || "Sonstiges") === S.noteFolder) && (!q || (n.title || "").toLowerCase().includes(q) || noteText(n).toLowerCase().includes(q))).sort(sortNotes);
+  const open = all.find(n => n.id === S.noteOpen);
+  let h = topbar("Notizen", `${all.length} Notizen in ${folders.filter(f => all.some(n => (n.folder || "Sonstiges") === f)).length} Ordnern`, `<div class="newnote"><button class="btn primary" data-act="noteMenu">${ico("plus", 15)} Neue Notiz</button>${S.noteMenu ? `<div class="menu">${Object.entries(TEMPLATES).map(([k, t]) => `<button data-act="noteNew" data-v="${k}">${esc(t.name)}</button>`).join("")}</div>` : ""}</div>`) + banners();
+  h += `<div class="nb ${open ? "has-open" : ""}">
+   <div class="nb-folders card">
+    <button class="nb-f" data-act="noteFolder" data-v="Alle" aria-pressed="${S.noteFolder === "Alle"}"><span>Alle Notizen</span><span class="faint">${all.length}</span></button>
+    ${folders.map(f => `<button class="nb-f" data-act="noteFolder" data-v="${esc(f)}" aria-pressed="${S.noteFolder === f}"><span>${esc(f)}</span><span class="faint">${all.filter(n => (n.folder || "Sonstiges") === f).length || ""}</span></button>`).join("")}
+    <div class="sep" style="margin:6px 0"></div>
+    <div style="display:flex;gap:6px"><input class="inp" id="nf-new" placeholder="Neuer Ordner" style="font-size:12px"><button class="btn sm" data-act="folderAdd">+</button></div>
+   </div>
+   <div class="nb-list card">
+    <input class="inp" id="note-q" data-ch="noteQ" placeholder="Notizen durchsuchen" value="${esc(S.noteQ || "")}">
+    <div class="nb-items">${list.length ? list.slice(0, 300).map(n => `<button class="nb-i" data-act="noteOpen" data-id="${esc(n.id)}" aria-pressed="${open && n.id === open.id}"><b>${esc(n.title || "Ohne Titel")}</b><span class="faint" style="font-size:11.5px">${n.date ? esc(fmtDate(n.date)) + " · " : ""}${esc(n.folder || "Sonstiges")}</span><span class="nb-snip">${esc(noteText(n).slice(0, 110))}</span></button>`).join("") : emptyBox("Keine Notizen in diesem Ordner")}</div>
+   </div>
+   <div class="nb-edit card">${open ? noteEditor(open, folders) : `<div class="empty" style="padding:60px 16px"><b>Wähle eine Notiz</b><span>oder lege mit „Neue Notiz“ eine Tageszusammenfassung, Analyse oder einen Wochen- oder Monatsrückblick an.</span></div>`}</div>
+  </div>`;
+  return h;
+}
+function noteEditor(n, folders) {
+  if (n.readonlyReport) return `<div class="tools" style="justify-content:space-between"><span class="pill acc">${esc(n.source || "KI")}</span><button class="btn sm ghost nb-back" data-act="noteClose">${ico("left", 14)} Liste</button></div><h2 style="margin:8px 0">${esc(n.title)}</h2><div class="md">${noteHTML(n)}</div>`;
+  const del = S.confirmDel === "note:" + n.id;
+  return `<div class="nb-head">
+    <button class="btn sm ghost nb-back" data-act="noteClose">${ico("left", 14)} Liste</button>
+    <input class="inp nb-title" id="ne-title" data-ch="noteField" data-k="title" value="${esc(n.title || "")}" placeholder="Titel">
+    <div class="nb-meta">
+     <input class="inp" type="date" id="ne-date" data-ch="noteField" data-k="date" value="${esc(n.date || "")}" style="width:auto">
+     <select class="inp" id="ne-folder" data-ch="noteField" data-k="folder" style="width:auto">${folders.filter(f => f !== "KI-Berichte" || n.folder === "KI-Berichte").map(f => `<option ${f === (n.folder || "Sonstiges") ? "selected" : ""}>${esc(f)}</option>`).join("")}</select>
+     ${n.date ? `<button class="btn sm" data-act="openDay" data-d="${esc(n.date)}">Zum Tag</button>` : ""}
+    </div></div>
+   <div class="nb-tb" role="toolbar" aria-label="Formatierung">
+    <button class="btn sm" data-cmd="formatBlock" data-v="H2" title="Überschrift">H</button><button class="btn sm" data-cmd="formatBlock" data-v="H3" title="Zwischenüberschrift">h</button>
+    <button class="btn sm" data-cmd="bold" title="Fett"><b>B</b></button><button class="btn sm" data-cmd="italic" title="Kursiv"><i>I</i></button>
+    <button class="btn sm" data-cmd="insertUnorderedList" title="Liste">• Liste</button><button class="btn sm" data-cmd="insertOrderedList" title="Nummerierung">1.</button>
+    <button class="btn sm" data-cmd="formatBlock" data-v="P" title="Normaler Text">¶</button>
+    <label class="btn sm" title="Bild einfügen">${ico("img", 14)} Bild<input type="file" accept="image/*" id="ne-img" data-ch="noteImg" hidden multiple></label>
+    <button class="btn sm" data-act="noteStats" title="Kennzahlen des Zeitraums einfügen">Kennzahlen einfügen</button>
+    <span class="faint" style="font-size:11.5px;margin-left:auto">${S.busy === "noteimg" ? "Bild wird hochgeladen …" : "Bilder mit ⌘V einfügen"}</span>
+   </div>
+   <div class="nb-body md" id="ne-body" contenteditable="true" data-note="${esc(n.id)}" spellcheck="true">${noteHTML(n)}</div>
+   <div class="tools" style="justify-content:space-between;margin-top:10px"><span class="faint" style="font-size:11.5px">${n.source ? "Quelle: " + esc(n.source) + " · " : ""}Wird automatisch gespeichert</span>${del ? `<span><button class="btn sm" data-act="cancelDel">Abbrechen</button> <button class="btn sm danger solid" data-act="noteDel">Löschen</button></span>` : `<button class="btn sm danger" data-act="noteAskDel">Notiz löschen</button>`}</div>`;
+}
+function dayNotesHTML(date) {
+  const ns = allNotes().filter(n => n.date === date && n.folder !== "Wochenrückblick" && n.folder !== "Monatsrückblick");
+  if (!ns.length) return "";
+  return `<div class="chips" style="align-items:center"><span class="muted" style="font-size:12px;font-weight:600">Notizen</span>${ns.map(n => `<button class="chip" data-act="noteGo" data-id="${esc(n.id)}">${ico("tagebuch", 13)} ${esc(n.title || n.folder)}</button>`).join("")}</div>`;
+}
+function weekNotesHTML(from, to) {
+  const ns = allNotes().filter(n => n.folder === "Wochenrückblick" && n.date >= from && n.date <= to);
+  if (!ns.length) return "";
+  return `<div class="chips" style="align-items:center"><span class="muted" style="font-size:12px;font-weight:600">Wochenrückblick</span>${ns.map(n => `<button class="chip" data-act="noteGo" data-id="${esc(n.id)}">${esc(n.title)}</button>`).join("")}</div>`;
+}
 /* ========= Render ========= */
-const VIEWS = { dashboard: viewDashboard, tagebuch: viewTagebuch, trades: viewTrades, kalender: viewKalender, news: viewNews, berichte: viewBerichte, playbooks: viewPlaybooks, reports: viewReports, import: viewImport, einstellungen: viewSettings };
+const VIEWS = { dashboard: viewDashboard, tagebuch: viewTagebuch, trades: viewTrades, kalender: viewKalender, news: viewNews, notizen: viewNotizen, berichte: viewBerichte, playbooks: viewPlaybooks, reports: viewReports, import: viewImport, einstellungen: viewSettings };
 function render() {
   if (S.auth === "login") { $(".shell").hidden = true; $("#modal").innerHTML = ""; let lg = $("#login"); if (!lg) { lg = document.createElement("div"); lg.id = "login"; document.body.appendChild(lg); } const mail = $("#li-mail")?.value; lg.innerHTML = loginHTML(); if (mail) $("#li-mail").value = mail; return; }
   $(".shell").hidden = false; $("#login")?.remove();
@@ -1463,7 +1607,7 @@ function render() {
 }
 function renderSoft() {
   const ae = document.activeElement;
-  if (ae && (ae.tagName === "TEXTAREA" || (ae.tagName === "INPUT" && !["checkbox", "file", "radio"].includes(ae.type)) || ae.tagName === "SELECT")) { S.pending = true; return; }
+  if (ae && (ae.isContentEditable || ae.tagName === "TEXTAREA" || (ae.tagName === "INPUT" && !["checkbox", "file", "radio"].includes(ae.type)) || ae.tagName === "SELECT")) { S.pending = true; return; }
   render();
 }
 document.addEventListener("focusout", () => { if (S.pending) setTimeout(() => { if (S.pending) { S.pending = false; renderSoft(); } }, 60); });
@@ -1486,6 +1630,22 @@ window.addEventListener("hashchange", () => { route(); S.pbOpen = S.view === "pl
 function navList() { return (S.view === "trades" ? filteredTrades() : S.trades).slice().sort(byClose); }
 const ACT = {
   range(a) { S.range = a.dataset.v; render(); },
+  noteMenu() { S.noteMenu = !S.noteMenu; render(); },
+  noteNew(a) {
+    const t = TEMPLATES[a.dataset.v]; const id = "n" + rid(); const d = todayStr();
+    const folder = t.folder || (S.noteFolder && S.noteFolder !== "Alle" && S.noteFolder !== "KI-Berichte" ? S.noteFolder : "Sonstiges");
+    const title = a.dataset.v === "woche" ? `KW ${isoWeek(d)} ${d.slice(0, 4)}` : a.dataset.v === "monat" ? `${MONTHS[+d.slice(5, 7) - 1]} ${d.slice(0, 4)}` : a.dataset.v === "leer" ? "" : `${t.name} ${fmtDate(d)} London`;
+    saveDoc("notes", id, { title, folder, date: d, period: t.period || "day", html: t.html(), created: new Date().toISOString(), updated: new Date().toISOString() });
+    S.noteMenu = false; S.noteOpen = id; S.noteFolder = folder; render(); setTimeout(() => { const e = $("#ne-title"); if (e && !title) e.focus(); }, 30);
+  },
+  noteFolder(a) { S.noteFolder = a.dataset.v; S.noteOpen = null; render(); },
+  noteOpen(a) { S.noteOpen = a.dataset.id; S.confirmDel = null; render(); },
+  noteClose() { S.noteOpen = null; render(); },
+  noteGo(a) { S.noteOpen = a.dataset.id; S.noteFolder = "Alle"; location.hash = "#notizen"; if (S.view === "notizen") render(); },
+  folderAdd() { const v = ($("#nf-new").value || "").trim(); if (!v) return; const l = S.settings.noteFolders || []; if (!l.includes(v) && !NOTE_FOLDERS.includes(v)) patchSettings({ noteFolders: [...l, v] }); S.noteFolder = v; render(); },
+  noteStats() { const n = S.notes.find(x => x.id === S.noteOpen); if (!n) return; const [f, t] = periodOf(n); noteInsert(statsTableHTML(f, t) + "<p></p>"); },
+  noteAskDel() { S.confirmDel = "note:" + S.noteOpen; render(); },
+  noteDel() { const n = S.notes.find(x => x.id === S.noteOpen); if (n) { const d = document.createElement("div"); d.innerHTML = n.html || ""; d.querySelectorAll("img[data-shot]").forEach(i => Store.removeShot(i.dataset.shot)); delDoc("notes", n.id); } S.noteOpen = null; S.confirmDel = null; toast("Notiz gelöscht"); render(); },
   delAiNote(a) { const col = a.dataset.col, id = a.dataset.id, i = +a.dataset.i; const cur = col === "trades" ? getTrade(id) : col === "days" ? S.days[id] : S.weeks[id]; if (!cur) return; const list = [...(cur.aiNotes || [])]; list.splice(i, 1); saveDoc(col, id, { ...cur, aiNotes: list }); render(); },
   openReport(a) { S.reportOpen = a.dataset.id; S.confirmDel = null; render(); },
   askDelReport(a) { S.confirmDel = "rep:" + a.dataset.id; render(); },
@@ -1564,7 +1724,7 @@ const ACT = {
   async demo() { if (S.busy) return; S.busy = "demo"; render(); const ts = demoTrades(); await saveMany("trades", ts); S.busy = null; toast(`${ts.length} Demo-Trades geladen`); location.hash = "#dashboard"; render(); },
   async demoDel() { const ts = S.trades.filter(t => t.demo); await delMany("trades", ts.map(t => t.id)); toast("Demo-Daten gelöscht"); render(); },
   expCSV() { saveFile(`trades-${todayStr()}.csv`, "﻿" + tradesCSV(S.trades)); },
-  expJSON() { saveFile(`prime-journal-sicherung-${todayStr()}.json`, JSON.stringify({ app: "prime-journal", exported: new Date().toISOString(), settings: S.settings, strategy: S.strategy, playbooks: S.playbooks, days: S.days, weeks: S.weeks, reports: S.reports, trades: S.trades }, null, 1), "application/json"); },
+  expJSON() { saveFile(`prime-journal-sicherung-${todayStr()}.json`, JSON.stringify({ app: "prime-journal", exported: new Date().toISOString(), settings: S.settings, strategy: S.strategy, playbooks: S.playbooks, days: S.days, weeks: S.weeks, notes: S.notes, reports: S.reports, trades: S.trades }, null, 1), "application/json"); },
   askDelAll() { S.confirmDel = "all"; render(); },
   async delAll() { S.busy = "del"; render(); const ts = [...S.trades]; await delMany("trades", ts.map(t => t.id)); ts.forEach(t => (t.shots || []).forEach(id => Store.removeShot(id))); S.busy = null; S.confirmDel = null; toast("Alle Trades gelöscht"); render(); }
 };
@@ -1591,6 +1751,9 @@ function onField(e) {
   switch (ch) {
     case "rfrom": if (!isInput) { S.from = el.value; render(); } break;
     case "rto": if (!isInput) { S.to = el.value; render(); } break;
+    case "noteQ": if (isInput) { S.noteQ = el.value; render(); } break;
+    case "noteField": { const n = S.notes.find(x => x.id === S.noteOpen); if (!n) break; if (k === "title" && isInput) saveLater("notes", n.id, { ...n, title: el.value, updated: new Date().toISOString() }); else if (k !== "title" && !isInput) { saveDoc("notes", n.id, { ...n, [k]: el.value, updated: new Date().toISOString() }); if (k === "folder") S.noteFolder = el.value; render(); } break; }
+    case "noteImg": if (!isInput && el.files.length) noteImages([...el.files]); break;
     case "strategy": if (isInput) saveLater("meta", "strategy", { text: el.value }); break;
     case "mcpWrite": if (!isInput) { saveDoc("meta", "mcp", { ...S.mcp, write: el.checked }); render(); } break;
     case "weekText": if (isInput) { const w = el.dataset.w, wd = S.weeks[w] || {}; saveLater("weeks", w, { ...wd, answers: { ...(wd.answers || {}), [el.dataset.q]: el.value } }); } break;
@@ -1616,7 +1779,32 @@ document.addEventListener("change", onField);
 document.addEventListener("dragover", e => { const z = e.target.closest && e.target.closest("#dropzone"); if (z) { e.preventDefault(); z.classList.add("over"); } });
 document.addEventListener("dragleave", e => { const z = e.target.closest && e.target.closest("#dropzone"); if (z) z.classList.remove("over"); });
 document.addEventListener("drop", e => { const z = e.target.closest && e.target.closest("#dropzone"); if (z) { e.preventDefault(); z.classList.remove("over"); const f = e.dataTransfer.files[0]; if (f) readImport(f); } });
+/* Notiz-Editor */
+let noteRange = null;
+document.addEventListener("selectionchange", () => { const b = $("#ne-body"); const s = document.getSelection(); if (b && s && s.rangeCount && b.contains(s.anchorNode)) noteRange = s.getRangeAt(0).cloneRange(); });
+function saveNoteBody() { const b = $("#ne-body"); if (!b) return; const n = S.notes.find(x => x.id === b.dataset.note); if (!n) return; saveLater("notes", n.id, { ...n, html: sanitizeHTML(b.innerHTML, true), updated: new Date().toISOString() }, 900); }
+function noteInsert(html) {
+  const b = $("#ne-body"); if (!b) return; b.focus();
+  const s = document.getSelection();
+  if (noteRange && b.contains(noteRange.startContainer)) { s.removeAllRanges(); s.addRange(noteRange); } else { const r = document.createRange(); r.selectNodeContents(b); r.collapse(false); s.removeAllRanges(); s.addRange(r); }
+  document.execCommand("insertHTML", false, html); hydrateShots(); saveNoteBody();
+}
+async function noteImages(files) {
+  S.busy = "noteimg"; const lab = document.querySelector(".nb-tb .faint"); if (lab) lab.textContent = "Bild wird hochgeladen …";
+  for (const f of files) { if (!f.type.startsWith("image/")) continue; try { const id = await Store.upload(f); noteInsert(`<img data-shot="${esc(id)}" alt="Bild"><br>`); } catch (e) { toast("Upload fehlgeschlagen: " + (e.message || e.code)); } }
+  S.busy = null; if (lab) lab.textContent = "Bilder mit ⌘V einfügen";
+}
+document.addEventListener("input", e => { if (e.target.id === "ne-body") saveNoteBody(); });
+document.addEventListener("mousedown", e => { const b = e.target.closest("[data-cmd]"); if (!b) return; e.preventDefault(); const ed = $("#ne-body"); if (!ed) return; if (document.activeElement !== ed) { ed.focus(); if (noteRange) { const s = document.getSelection(); s.removeAllRanges(); s.addRange(noteRange); } } document.execCommand(b.dataset.cmd, false, b.dataset.v ? "<" + b.dataset.v + ">" : null); saveNoteBody(); });
+document.addEventListener("dblclick", e => { const i = e.target.closest("#ne-body img[data-shot], .md img[data-shot]"); if (i) { S.lightbox = i.dataset.shot; render(); } });
 document.addEventListener("paste", e => {
+  if (e.target.closest && e.target.closest("#ne-body")) {
+    const files = [...(e.clipboardData?.files || [])].filter(f => f.type.startsWith("image/"));
+    if (files.length) { e.preventDefault(); noteImages(files); return; }
+    const html = e.clipboardData?.getData("text/html");
+    if (html) { e.preventDefault(); noteInsert(sanitizeHTML(html, true)); }
+    return;
+  }
   if (!S.openTrade) return;
   const files = [...(e.clipboardData?.files || [])].filter(f => f.type.startsWith("image/"));
   if (files.length) { e.preventDefault(); uploadShots(files); }
@@ -1645,6 +1833,8 @@ async function restoreBackup(file) {
     if (d.settings) { await saveMany("meta", [{ id: "settings", ...S.settings, ...d.settings }]); n++; }
     if (Array.isArray(d.playbooks)) { await saveMany("playbooks", d.playbooks.filter(p => p.id && p.name)); n += d.playbooks.length; }
     if (Array.isArray(d.trades)) { await saveMany("trades", d.trades.filter(t => t.id && t.date)); n += d.trades.length; }
+    if (Array.isArray(d.notes)) { await saveMany("notes", d.notes.filter(x => x.id)); n += d.notes.length; }
+    if (d.remove && typeof d.remove === "object") for (const [col, ids] of Object.entries(d.remove)) if (["reports", "notes", "trades", "days", "weeks"].includes(col) && Array.isArray(ids)) { await delMany(col, ids); ids.forEach(id => { if (col === "reports") S.reports = S.reports.filter(r => r.id !== id); if (col === "notes") S.notes = S.notes.filter(r => r.id !== id); }); }
     if (Array.isArray(d.reports)) { await saveMany("reports", d.reports.filter(r => r.id && r.title)); n += d.reports.length; }
     if (typeof d.strategy === "string" && d.strategy.trim()) { await saveMany("meta", [{ id: "strategy", text: d.strategy }]); n++; }
     for (const col of ["days", "weeks"]) if (d[col] && typeof d[col] === "object") { const l = Object.entries(d[col]).map(([id, v]) => ({ id, ...v })); await saveMany(col, l); n += l.length; }
