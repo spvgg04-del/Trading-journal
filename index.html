@@ -289,6 +289,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
 .pj-cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:10px 0}.pj-col{min-width:0}.pj-col img{width:100%;height:auto}#ne-body .pj-col{border:1px dashed var(--line);border-radius:8px;padding:6px;min-height:60px}@media (max-width:760px){.pj-cols{grid-template-columns:1fr}}
 .kpi .val{white-space:nowrap}
 .nb-tree>*,.nb-tree .nb-tn,.nb-tree .nb-f{flex-shrink:0}
+.nb-body p{margin:10px 0}.nb-body ul,.nb-body ol{margin:6px 0 10px}.nb-body li{margin:3px 0}
 </style>
 </head>
 <body>
@@ -1660,6 +1661,7 @@ function ruleEval(sp) {
   }
   if (sp.m5close === "nein") bad.push("kein M5-Close"); else if (sp.m5close === "ja") good.push("M5-Close");
   if (sp.crv === "nein") bad.push("CRV < 1:1,5"); else if (sp.crv === "ja") good.push("CRV ≥ 1:1,5");
+  if (sp.taken === "ja" && sp.byCheck === "nein") bad.push("gegen Checkliste");
   const complete = !!c && sp.m5close && sp.crv;
   return { ok: bad.length ? false : complete ? true : null, bad, good };
 }
@@ -1675,22 +1677,22 @@ function sessionTemplate(sess, d) {
 function startSession(sess) {
   const d = todayStr(), [y, m, dd] = d.split("-"), title = `${dd}.${m}.${y.slice(2)} ${sess}`;
   const ex = S.notes.find(n => n.date === d && String(n.title || "").trim() === title);
-  if (ex) { S.noteOpen = ex.id; S.noteFolder = ex.folder || "Tageszusammenfassungen"; render(); return; }
+  if (ex) { if (!isSession(ex)) saveDoc("notes", ex.id, { ...ex, html: noteHTML(ex), kind: "session", session: sess, sp: { mode: "Solo", ...(ex.sp || {}) }, updated: new Date().toISOString() }); S.noteOpen = ex.id; S.noteFolder = ex.folder || "Tageszusammenfassungen"; render(); return; }
   const id = "s" + rid();
   saveDoc("notes", id, { title, folder: "Tageszusammenfassungen", date: d, period: "day", kind: "session", session: sess, sp: { mode: "Solo" }, html: sessionTemplate(sess, d), created: new Date().toISOString(), updated: new Date().toISOString() });
   S.noteOpen = id; S.noteFolder = "Tageszusammenfassungen"; render();
 }
 function spBtns(n, k, opts, cur) { return opts.map(o => `<button class="sp-btn" data-act="spSet" data-id="${esc(n.id)}" data-k="${k}" data-v="${esc(o)}" aria-pressed="${cur === o}">${esc(o)}</button>`).join(""); }
 function sessionPanel(n) {
-  const sp = n.sp || {}, c = sp.check, r = ruleEval(sp);
+  const sp = n.sp || {}, c = sp.check, r = ruleEval(sp), r0 = ruleEval({ ...sp, byCheck: null });
   let h = `<div class="sp">
    <div class="sp-row"><b>Modus</b>${spBtns(n, "mode", ["Solo", "Live mit Community"], sp.mode)}</div>
    <div class="sp-row"><b>HTF (H1/H4)</b>${spBtns(n, "htf", ["long", "short", "range"], sp.htf)}</div>
    <div class="sp-row"><b>M5-Trend</b>${spBtns(n, "m5", ["long", "short", "range"], sp.m5)}</div>
    <div class="sp-row"><b>Prime-Checkliste</b>${c ? `<span class="pill">${esc([c.strategie, c.setup, c.zone].filter(Boolean).join(" · "))}</span> <span class="pill ${["A", "B"].includes(c.grade) ? "acc" : ""}">Note ${esc(c.grade || "?")}${c.pct != null ? " (" + c.pct + " %)" : ""}</span> <span class="faint">Kerze: ${esc(c.kerze || "–")}</span>` : `<span class="faint">Text der Community-Checkliste in die Notiz einfügen (⌘V) – wird automatisch erkannt.</span>`}</div>
    <div class="sp-row"><b>M5-Close abgewartet</b>${spBtns(n, "m5close", ["ja", "nein"], sp.m5close)}<b style="min-width:auto;margin-left:10px">CRV ≥ 1:1,5</b>${spBtns(n, "crv", ["ja", "nein"], sp.crv)}</div>
-   <div class="sp-rule">${r.ok === true ? `<b class="ok">Freigegeben</b> – alle Punkte erfüllt (${esc(r.good.join(", "))}).` : r.ok === false ? `<b class="bad">Flat</b> – ${esc(r.bad.join(", "))}.` : `Regel: ${esc(RULE_LINE)}`}</div>
-   <div class="sp-row"><b>Trade genommen?</b>${spBtns(n, "taken", ["ja", "nein"], sp.taken)}</div>`;
+   <div class="sp-rule">${r0.ok === true ? `<b class="ok">Freigegeben</b> – alle Punkte erfüllt (${esc(r0.good.join(", "))}).` : r0.ok === false ? `<b class="bad">Flat</b> – ${esc(r0.bad.join(", "))}.` : `Regel: ${esc(RULE_LINE)}`}</div>
+   <div class="sp-row"><b>Trade genommen?</b>${spBtns(n, "taken", ["ja", "nein"], sp.taken)}</div>${sp.taken === "ja" ? `<div class="sp-row"><b>Nach Checkliste?</b>${spBtns(n, "byCheck", ["ja", "nein"], sp.byCheck)}</div>` : ""}`;
   if (sp.taken === "nein") {
     h += `<div class="sp-row"><b>Valider Trade da?</b>${spBtns(n, "valid", ["ja", "nein"], sp.valid)}</div>`;
     if (sp.valid === "ja") h += `<div class="sp-row"><b>Warum nicht?</b>${spBtns(n, "why", WHY_NOT, whyOf(sp))}</div>${whyOf(sp) === "Anderes" ? `<div class="sp-row"><b>Welcher Grund?</b><input class="inp" style="flex:1" id="sp-wt-${esc(n.id)}" data-ch="spText" data-id="${esc(n.id)}" data-k="whyText" value="${esc(sp.whyText || "")}" placeholder="kurz in eigenen Worten"></div>` : ""}`;
@@ -1781,7 +1783,7 @@ function noteTreeHTML(all, folders, open, q) {
   const ex = nbExpSet();
   const item = (n, deep) => `<button class="nb-tn ${deep ? "deep" : ""}" data-act="noteOpen" data-id="${esc(n.id)}" aria-pressed="${!!open && n.id === open.id}" title="${esc(n.title || "")}">${esc(n.title || "Ohne Titel")}</button>`;
   if (q) { const hits = all.filter(n => (n.title || "").toLowerCase().includes(q) || noteText(n).toLowerCase().includes(q)).sort(sortNotes).slice(0, 200); return `<div class="faint" style="font-size:12px;padding:4px 8px">${hits.length} Treffer</div>` + (hits.map(n => item(n)).join("") || emptyBox("Nichts gefunden")); }
-  if (open) { ex.add("f:" + (open.folder || "Sonstiges")); if (open.date) ex.add("m:" + (open.folder || "Sonstiges") + ":" + open.date.slice(0, 7)); }
+  if (open && S.nbRevealed !== open.id) { S.nbRevealed = open.id; ex.add("f:" + (open.folder || "Sonstiges")); if (open.date) ex.add("m:" + (open.folder || "Sonstiges") + ":" + open.date.slice(0, 7)); lsSet("pj-nbexp", JSON.stringify([...ex])); }
   let h = "";
   for (const f of folders) {
     const ns = all.filter(n => (n.folder || "Sonstiges") === f).sort(sortNotes); if (!ns.length) continue;
@@ -1930,7 +1932,7 @@ const ACT = {
   monthStart() { const d = todayStr(); let y = +d.slice(0, 4), m = +d.slice(5, 7); if (+d.slice(8, 10) <= 7) { m--; if (!m) { m = 12; y--; } } const title = `${MON_DE[m - 1]} ${y}`, ds = `${y}-${String(m).padStart(2, "0")}-01`;
     const ex = S.notes.find(n => n.folder === "Monatsrückblick" && String(n.title || "").trim() === title); if (ex) { S.noteOpen = ex.id; S.noteFolder = "Monatsrückblick"; render(); return; }
     const id = "n" + rid(); saveDoc("notes", id, { title, folder: "Monatsrückblick", date: ds, period: "month", html: TEMPLATES.monat.html(), created: new Date().toISOString(), updated: new Date().toISOString() }); S.noteOpen = id; S.noteFolder = "Monatsrückblick"; render(); },
-  spSet(a) { saveNoteBody(); const n = S.notes.find(x => x.id === a.dataset.id); if (!n) return; const sp = { ...(n.sp || {}) }; const k = a.dataset.k, v = a.dataset.v; sp[k] = sp[k] === v ? null : v; if (k === "taken" && sp.taken !== "nein") { sp.valid = null; sp.why = null; } if (k === "valid" && sp.valid !== "ja") sp.why = null; saveDoc("notes", n.id, { ...S.notes.find(x => x.id === n.id), sp, updated: new Date().toISOString() }); render(); },
+  spSet(a) { saveNoteBody(); const n = S.notes.find(x => x.id === a.dataset.id); if (!n) return; const sp = { ...(n.sp || {}) }; const k = a.dataset.k, v = a.dataset.v; sp[k] = sp[k] === v ? null : v; if (k === "taken" && sp.taken !== "nein") { sp.valid = null; sp.why = null; } if (k === "taken" && sp.taken !== "ja") sp.byCheck = null; if (k === "valid" && sp.valid !== "ja") sp.why = null; saveDoc("notes", n.id, { ...S.notes.find(x => x.id === n.id), sp, updated: new Date().toISOString() }); render(); },
   weekFill(a) { const n = S.notes.find(x => x.id === a.dataset.id); if (!n) return; const [f, t] = weekRange(n.date || todayStr()); saveNoteBody(); setTimeout(() => { noteInsert(weekSummaryHTML(f, t)); toast("Zahlen und Learnings eingefügt"); }, 30); },
   async weekCopy(a) { const n = S.notes.find(x => x.id === a.dataset.id); if (!n) return; const [f, t] = weekRange(n.date || todayStr()); try { await navigator.clipboard.writeText(weekClaudeText(f, t)); toast("Kopiert – jetzt im Chat mit Claude einfügen (⌘V)"); } catch (e) { toast("Kopieren nicht möglich: " + (e.message || e)); } },
   nbView(a) { const v = a.dataset.v; let c = S.nbView || ""; c = c.includes(v) ? c.replace(v, "") : c + v; S.nbView = c; lsSet("pj-nbview", c); render(); },
@@ -2134,7 +2136,7 @@ async function uploadShots(files) {
 
 
 /* ========= Bilder-Import (Zip mit bilder-zuordnung.json) – v1.1 ========= */
-const APP_VERSION = "1.3.3 · 17.11.26"; /* Design: Icon-Leiste, Notizbaum, volle Breite */
+const APP_VERSION = "1.3.5 · 17.11.26"; /* Design: Icon-Leiste, Notizbaum, volle Breite */
 async function readZip(file) {
   const buf = new Uint8Array(await file.arrayBuffer()); const dv = new DataView(buf.buffer);
   let e = buf.length - 22; while (e >= 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
