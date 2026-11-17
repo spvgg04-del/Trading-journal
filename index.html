@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Prime Journal">
+<meta name="apple-mobile-web-app-title" content="Mein Journal">
 <meta name="theme-color" content="#0F131C">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 26 26%22%3E%3Crect width=%2226%22 height=%2226%22 rx=%227%22 fill=%22%232F54EB%22/%3E%3Cpath d=%22M7 17l4-5 3 3 5-7%22 stroke=%22white%22 stroke-width=%222.2%22 fill=%22none%22 stroke-linecap=%22round%22/%3E%3C/svg%3E">
-<title>Prime Journal</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 26 26%22%3E%3Crect width=%2226%22 height=%2226%22 rx=%227%22 fill=%22%232F54EB%22/%3E%3Cpath d=%22M7 18l4-5 3 3 6-7M16.5 9h3.5v3.5%22 stroke=%22white%22 stroke-width=%222.2%22 fill=%22none%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E">
+<title>Mein Journal</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap">
 <style>
@@ -188,7 +188,10 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
 .rule{display:flex;gap:9px;align-items:flex-start;padding:6px 0;font-size:13px;cursor:pointer}
 .rule input{margin-top:3px;accent-color:var(--accent)}
 .lightbox{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;padding:20px;cursor:zoom-out}
-.lightbox img{max-width:100%;max-height:100%;border-radius:6px}
+.lightbox img{max-width:100%;max-height:100%;border-radius:6px;cursor:zoom-in;background:#fff}
+.lightbox.zoom{display:block;overflow:auto;padding:20px 20px 60px}.lightbox.zoom img{max-width:none;max-height:none;width:100%;cursor:zoom-out}
+.lb-hint{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);color:#fff;font-size:12px;background:rgba(0,0,0,.6);padding:6px 12px;border-radius:8px;pointer-events:none}
+#ne-body img[data-shot],.md img[data-shot]{max-width:100%;cursor:zoom-in;border-radius:6px;border:1px solid var(--line,#2a2f3a)}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:9px;font-weight:600;font-size:13px;z-index:80;max-width:calc(100% - 32px);box-shadow:0 8px 24px rgba(0,0,0,.25)}
 .banner{border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:12px 14px;font-size:13px;color:var(--muted);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .banner.warn{border-color:color-mix(in srgb,var(--warn) 45%,transparent)}
@@ -217,7 +220,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
 .ainotes{border-color:color-mix(in srgb,var(--accent) 35%,var(--line))}
 .ainote{display:flex;flex-direction:column;gap:4px;padding:8px 0;border-top:1px solid var(--line)}
 .ainote:first-of-type{border-top:0;padding-top:0}
-.md{font-size:13.5px;line-height:1.6;min-width:0}
+.md{font-size:14.5px;line-height:1.65;min-width:0}
 .md h2{font-size:18px}.md h3{font-size:15px;margin:14px 0 6px;display:block}.md h4{font-size:13.5px;margin:12px 0 4px}
 .md p{margin:6px 0}.md ul,.md ol{margin:6px 0;padding-left:20px}
 .md .tbl td,.md .tbl th{white-space:normal}
@@ -246,7 +249,19 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
 .nb-title{font-size:18px;font-weight:700;border-color:transparent;padding-left:4px}
 .nb-meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .nb-tb{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);margin-bottom:10px;position:sticky;top:0;background:var(--surface);z-index:2}
-.nb-body{flex:1;outline:none;min-height:50vh;padding:4px}
+.nb-body{flex:1;outline:none;min-height:50vh;padding:4px 6px;font-size:15px;line-height:1.7;max-width:900px}
+.nb.hf{grid-template-columns:300px minmax(0,1fr)}.nb.hl{grid-template-columns:240px minmax(0,1fr)}.nb.hf.hl{grid-template-columns:minmax(0,1fr)}
+.nb.hf .nb-folders,.nb.hl .nb-list{display:none}
+.nb.hf.hl .nb-edit{padding:22px clamp(16px,4vw,48px)}.nb.hf.hl .nb-body{margin:0 auto;width:100%}
+.nb-view{display:flex;gap:6px;flex-wrap:wrap}
+.sp{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:8px 0 12px;display:flex;flex-direction:column;gap:8px;font-size:13px}
+.sp-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.sp-row>b{min-width:118px;font-size:12px;color:var(--muted)}
+.sp-btn{border:1px solid var(--line);background:none;color:inherit;border-radius:7px;padding:4px 10px;font-size:12.5px;cursor:pointer}
+.sp-btn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.sp-rule{font-size:12.5px;padding:7px 10px;border-radius:8px;background:var(--surface2)}
+.ckbox{border-left:3px solid var(--accent);padding:6px 10px;border-radius:0;background:var(--surface2);font-size:13px}
+.ok{color:var(--pos,#22c55e)}.bad{color:var(--neg,#ef4444)}
+.dayshots{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}.dayshots img{width:100%;border-radius:6px;cursor:zoom-in;border:1px solid var(--line)}
 .nb-body:focus{box-shadow:none}
 .md img,.nb-body img{max-width:100%;border-radius:8px;border:1px solid var(--line);margin:6px 0;display:block}
 .md table,.nb-body table{border-collapse:collapse;margin:8px 0;font-size:13px}
@@ -368,7 +383,9 @@ function downloadFile(filename, data, type) {
 const pipSize = sym => { const s = String(sym || "").toUpperCase().replace(/[^A-Z]/g, ""); if (/^[A-Z]{6}$/.test(s)) return s.endsWith("JPY") ? 0.01 : 0.0001; return 1; };
 const pipsOf = t => t.entry != null && t.exit != null ? (t.exit - t.entry) * (t.side === "long" ? 1 : -1) / pipSize(t.symbol) : null;
 const riskPrice = t => t.sl != null && t.entry != null && Math.abs(t.entry - t.sl) > 0 ? Math.abs(t.entry - t.sl) : null;
-const Rof = t => { if (t.risk > 0) return t.net / t.risk; const rp = riskPrice(t); return rp && t.exit != null ? (t.exit - t.entry) * (t.side === "long" ? 1 : -1) / rp : null; };
+const effRisk = t => t.risk > 0 ? +t.risk : (!t.demo && t.date >= (S.settings.riskFrom || "2026-06-01") && +S.settings.defRisk > 0 ? +S.settings.defRisk : 0);
+const RgrossOf = t => { const r = effRisk(t); return r > 0 && t.gross != null ? t.gross / r : null; };
+const Rof = t => { const er = effRisk(t); if (er > 0) return t.net / er; const rp = riskPrice(t); return rp && t.exit != null ? (t.exit - t.entry) * (t.side === "long" ? 1 : -1) / rp : null; };
 const crvOf = t => { const rp = riskPrice(t); return rp && t.tp != null ? Math.abs(t.tp - t.entry) / rp : null; };
 const V = t => S.unit === "R" ? Rof(t) : S.unit === "pips" ? pipsOf(t) : t.net;
 function fmtV(v, o = {}) {
@@ -440,7 +457,7 @@ const WD = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
 const WD_LONG = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"];
 const MONTHS = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
 const DEFAULT_SETTINGS = {
-  currency: "EUR", startBalance: 0, tzShift: 0,
+  currency: "EUR", startBalance: 0, tzShift: 0, defRisk: 10, riskFrom: "2026-06-01", weekRule: "",
   tags: ["London", "New York", "Asien", "Trendtag", "Rangetag", "Nach News", "A+ Setup"],
   mistakes: ["FOMO", "Zu früh eingestiegen", "SL verschoben", "Zu früh geschlossen", "Revenge-Trade", "Overtrading", "Gegen Plan", "Kein Setup", "Position zu groß", "News ignoriert"],
   moods: ["Fokussiert", "Ruhig", "Neutral", "Ungeduldig", "Gestresst", "Müde"],
@@ -894,11 +911,11 @@ const I = {
   plus: '<path d="M12 5v14M5 12h14"/>', x: '<path d="M6 6l12 12M18 6 6 18"/>', left: '<path d="M15 18l-6-6 6-6"/>', right: '<path d="M9 18l6-6-6-6"/>', img: '<path d="M4 5h16v14H4zM4 15l4-4 5 5 3-3 4 4"/>', dl: '<path d="M12 3v12m0 0-4-4m4 4 4-4M4 17v3h16v-3"/>'
 };
 const ico = (k, s = 18) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[k]}</svg>`;
-const NAV = [["dashboard", "Dashboard"], ["tagebuch", "Tagebuch"], ["trades", "Trades"], ["kalender", "Kalender"], ["news", "News"], ["playbooks", "Playbooks"], ["reports", "Reports"], ["notizen", "Notizen"], ["import", "Import"], ["einstellungen", "Einstellungen"]];
+const NAV = [["notizen", "Notizen"], ["dashboard", "Dashboard"], ["tagebuch", "Tagebuch"], ["trades", "Trades"], ["kalender", "Kalender"], ["news", "News"], ["playbooks", "Playbooks"], ["reports", "Reports"], ["import", "Import"], ["einstellungen", "Einstellungen"]];
 
 function sideHTML() {
   const st = S.dbState === "loading" ? "Lade Daten …" : S.dbState === "error" ? "Daten konnten nicht geladen werden" : Store.mode === "cloud" ? `Cloud · ${S.trades.length} Trades${Store.email ? " · " + Store.email : ""}` : `Lokal in diesem Browser · ${S.trades.length} Trades`;
-  return `<div class="brand"><svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><rect width="26" height="26" rx="7" fill="var(--accent)"/><path d="M7 17l4-5 3 3 5-7" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Prime Journal</span></div>
+  return `<div class="brand"><svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><rect width="26" height="26" rx="7" fill="var(--accent)"/><path d="M7 18l4-5 3 3 6-7" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M16.5 9h3.5v3.5" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="7.5" cy="8" r="1.4" fill="#fff"/></svg><span>Mein Journal</span></div>
   <nav class="nav">${NAV.map(([k, l]) => `<a href="#${k}" ${S.view === k ? 'aria-current="page"' : ""}>${ico(k)}<span>${l}</span></a>`).join("")}</nav>
   <div class="grow"></div><div class="status">${esc(st)}<br><span class="faint">Version ${APP_VERSION}</span></div>`;
 }
@@ -926,6 +943,9 @@ function viewDashboard() {
   if (!S.trades.length) return h + (S.loaded || S.dbState === "local" ? emptyState() : `<div class="card">${emptyBox("Lade deine Trades …")}</div>`);
   const demo = S.trades.some(t => t.demo);
   if (demo) h += `<div class="banner">Du siehst Demo-Daten. <button class="btn sm" data-act="demoDel">Demo-Daten löschen</button></div>`;
+  { const exA = execStats("2026-10-01", "2999-12-31"), rts = ts.filter(t => !t.demo), rn = rts.map(Rof).filter(v => v != null), rg = rts.map(RgrossOf).filter(v => v != null), sm = a => a.reduce((x, y) => x + y, 0);
+    h += `<div class="grid g-kpi"><div class="card kpi"><div class="lab">Execution Rate <span class="pill">seit 01.10.</span></div><div class="val num">${exA.rate == null ? "–" : Math.round(exA.rate * 100) + " %"}</div><div class="faint" style="font-size:12px">${exA.takenValid} von ${exA.valid} validen Setups genommen · verpasst ${exA.missed} · Regelbrüche ${exA.broken} · Ziel ≥ 80 %</div></div>
+     <div class="card kpi"><div class="lab">Ergebnis in R <span class="pill">netto / brutto</span></div><div class="val num ${cls(sm(rn))}">${rn.length ? fmtNum(sm(rn), 2) + " R" : "–"}</div><div class="faint" style="font-size:12px">brutto ${rg.length ? fmtNum(sm(rg), 2) + " R" : "–"} · ${rn.length} Trades mit Risiko (10 € ab 01.06.)</div></div></div>`; }
   h += `<div class="grid g-kpi">
    <div class="card kpi"><div class="lab">Netto-P&amp;L <span class="pill">${st.n} Trades</span></div><div class="val num ${cls(st.net)}">${fmtV(st.net, { sign: 1 })}</div><div class="faint" style="font-size:12px">Gebühren ${fmtMoney(st.fees)}</div></div>
    <div class="card kpi"><div class="lab">Trefferquote (Trades)</div><div class="row"><div class="val num">${fmtPct(st.winRate)}</div>${winGauge(st.w, st.l, st.be)}</div><div class="faint" style="font-size:12px"><span class="pos">${st.w} G</span> · ${st.be} BE · <span class="neg">${st.l} V</span></div></div>
@@ -1087,6 +1107,7 @@ function tradeDrawer(t) {
      </div>
      <div class="card"><h3>Notizen</h3><textarea class="inp" id="t-notes" data-ch="tNotes" style="min-height:140px" placeholder="Warum bin ich eingestiegen? Was hat der Markt gemacht? Was nehme ich mit?">${esc(t.notes || "")}</textarea></div>
      ${aiNotesHTML(t.aiNotes, "trades", t.id)}
+     ${dayShotsOf(t.date).length ? `<div class="card"><h3>Bilder aus der Session-Notiz <span class="hint">Klick = groß</span></h3><div class="dayshots">${dayShotsOf(t.date).map(id => `<img data-shot="${esc(id)}" alt="Bild aus Tagesnotiz">`).join("")}</div></div>` : ""}
      <div class="card"><h3>Screenshots <span class="hint">Bild einfügen (⌘V) oder hochladen</span></h3>
       <div class="shots">${(t.shots || []).map(id => `<div class="shot"><img data-shot="${esc(id)}" alt="Chart-Screenshot" data-act="lightbox" data-id="${esc(id)}"><button class="btn sm" data-act="delShot" data-id="${esc(id)}" aria-label="Screenshot entfernen">${ico("x", 13)}</button></div>`).join("")}
       ${true ? `<label class="drop" style="aspect-ratio:16/10;justify-content:center">${ico("img", 20)}<span>${S.busy === "shot" ? "Lädt hoch …" : "Bild hinzufügen"}</span><input type="file" accept="image/*" id="t-shot" data-ch="tShot" hidden multiple></label>` : ""}</div>
@@ -1337,7 +1358,7 @@ function viewWeeks(jseg) {
 function loginHTML() {
   const m = S.authMode || "in";
   return `<div class="login"><div class="card" style="width:min(400px,100%);display:flex;flex-direction:column;gap:14px;padding:24px">
-   <div class="brand" style="color:var(--fg);padding:0"><svg width="28" height="28" viewBox="0 0 26 26" aria-hidden="true"><rect width="26" height="26" rx="7" fill="var(--accent)"/><path d="M7 17l4-5 3 3 5-7" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg><span style="display:inline">Prime Journal</span></div>
+   <div class="brand" style="color:var(--fg);padding:0"><svg width="28" height="28" viewBox="0 0 26 26" aria-hidden="true"><rect width="26" height="26" rx="7" fill="var(--accent)"/><path d="M7 18l4-5 3 3 6-7" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M16.5 9h3.5v3.5" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="7.5" cy="8" r="1.4" fill="#fff"/></svg><span style="display:inline">Mein Journal</span></div>
    <div class="muted">${m === "in" ? "Melde dich an, um dein Journal zu öffnen." : "Lege dein Konto an. Das machst du nur einmal."}</div>
    <form id="loginform" style="display:flex;flex-direction:column;gap:12px">
     <label class="f">E-Mail<input class="inp" type="email" id="li-mail" autocomplete="username" required></label>
@@ -1538,14 +1559,139 @@ function statsTableHTML(from, to) {
   return `<table><thead><tr><th>Kennzahl (${esc(fmtDate(from))}${from !== to ? " – " + esc(fmtDate(to)) : ""})</th><th>Wert</th></tr></thead><tbody>${row("Trades", st.n)}${row("Netto-P&amp;L", esc(fmtMoney(st.net)))}${row("Trefferquote", esc(fmtPct(st.winRate)))}${row("Profit-Faktor", esc(fmtPF(st.pf)))}${row("Ø Gewinn / Ø Verlust", esc(fmtMoney(st.avgWin)) + " / " + esc(fmtMoney(st.avgLoss)))}${row("Ø R", st.avgR == null ? "–" : esc(fmtNum(st.avgR, 2)))}${row("Gebühren", esc(fmtMoney(st.fees)))}${row("Fehler markiert", ts.reduce((a, t) => a + (t.mistakes || []).length, 0))}</tbody></table>`;
 }
 
+
+/* ========= Session-Cockpit (v1.2) ========= */
+const RULE_LINE = "A/B + gesunde Kerze + M5-Close + CRV ≥ 1:1,5 → Limit raus. Fehlt eins → flat. TP bleibt stehen.";
+const WHY_NOT = ["Angst", "Zu viel gedacht", "Trigger nicht vertraut", "Setup nicht klar", "Anderes"];
+const isSession = n => n && (n.kind === "session" || n.sp);
+function parseChecklist(text) {
+  if (!/Prime Trading Checkliste/i.test(text || "")) return null;
+  const o = { raw: String(text).trim() };
+  for (const l of String(text).split(/\r?\n/)) { const m = l.match(/^\s*([^:]+):\s*(.+)$/); if (m) o[m[1].trim().toLowerCase()] = m[2].trim(); }
+  const g = (o.note || "").match(/^([A-F])\b.*?(\d+)\s*%/i); o.grade = g ? g[1].toUpperCase() : ((o.note || "").match(/^([A-F])/) || [])[1] || ""; o.pct = g ? +g[2] : null;
+  const st = (o.raw.split(/\r?\n/)[0].match(/(\d{1,2}:\d{2})/) || [])[1]; o.time = st || "";
+  return o;
+}
+function ruleEval(sp) {
+  sp = sp || {}; const c = sp.check, bad = [], good = [];
+  if (c) {
+    if (["A", "B"].includes(c.grade)) good.push("Note " + c.grade); else bad.push("Note " + (c.grade || "?") + " (nur A/B)");
+    if (/ungesund/i.test(c.kerze || "")) bad.push("Kerze ungesund"); else if (c.kerze) good.push("Kerze " + c.kerze);
+  }
+  if (sp.m5close === "nein") bad.push("kein M5-Close"); else if (sp.m5close === "ja") good.push("M5-Close");
+  if (sp.crv === "nein") bad.push("CRV < 1:1,5"); else if (sp.crv === "ja") good.push("CRV ≥ 1:1,5");
+  const complete = !!c && sp.m5close && sp.crv;
+  return { ok: bad.length ? false : complete ? true : null, bad, good };
+}
+function newsTodayHTML(d) {
+  const ev = (S.news || []).filter(e => e.t && e.t.slice(0, 10) === d && (e.impact === "High" || e.impact === "Medium"));
+  if (!ev.length) return `<p>Keine wichtigen GBP/JPY-News heute (Forex Factory).</p>`;
+  return `<ul>${ev.map(e => `<li><b>${esc(e.t.slice(11, 16))}</b> ${esc(e.cur)} – ${esc(e.title)}${e.impact === "High" ? " <b>(hoch)</b>" : ""}</li>`).join("")}</ul>`;
+}
+function sessionTemplate(sess, d) {
+  const wr = (S.settings.weekRule || "").trim();
+  return `<p><b>Regel:</b> ${esc(RULE_LINE)}</p>${wr ? `<p><b>Wochenregel:</b> ${esc(wr)}</p>` : ""}<h2>News heute</h2>${newsTodayHTML(d)}<h2>Analyse</h2><p><b>Analysebild:</b></p><p><b>Long wenn:</b> </p><p><b>Short wenn:</b> </p><p><b>Range:</b> </p><h2>Trade</h2><p><b>Entrybild:</b></p><p><b>Checkliste:</b> <i>Text der Prime-Checkliste mit ⌘V hier einfügen</i></p><p><b>Bestätigung ist valide, weil:</b> </p><p><b>Exitbild:</b></p><h2>Learning</h2><p><b>Ein Satz:</b> </p>`;
+}
+function startSession(sess) {
+  const d = todayStr(), [y, m, dd] = d.split("-"), title = `${dd}.${m}.${y.slice(2)} ${sess}`;
+  const ex = S.notes.find(n => n.date === d && String(n.title || "").trim() === title);
+  if (ex) { S.noteOpen = ex.id; S.noteFolder = ex.folder || "Tageszusammenfassungen"; render(); return; }
+  const id = "s" + rid();
+  saveDoc("notes", id, { title, folder: "Tageszusammenfassungen", date: d, period: "day", kind: "session", session: sess, sp: {}, html: sessionTemplate(sess, d), created: new Date().toISOString(), updated: new Date().toISOString() });
+  S.noteOpen = id; S.noteFolder = "Tageszusammenfassungen"; render();
+}
+function spBtns(n, k, opts, cur) { return opts.map(o => `<button class="sp-btn" data-act="spSet" data-id="${esc(n.id)}" data-k="${k}" data-v="${esc(o)}" aria-pressed="${cur === o}">${esc(o)}</button>`).join(""); }
+function sessionPanel(n) {
+  const sp = n.sp || {}, c = sp.check, r = ruleEval(sp);
+  let h = `<div class="sp">
+   <div class="sp-row"><b>HTF (H1/H4)</b>${spBtns(n, "htf", ["long", "short", "range"], sp.htf)}</div>
+   <div class="sp-row"><b>M5-Trend</b>${spBtns(n, "m5", ["long", "short", "range"], sp.m5)}</div>
+   <div class="sp-row"><b>Prime-Checkliste</b>${c ? `<span class="pill">${esc([c.strategie, c.setup, c.zone].filter(Boolean).join(" · "))}</span> <span class="pill ${["A", "B"].includes(c.grade) ? "acc" : ""}">Note ${esc(c.grade || "?")}${c.pct != null ? " (" + c.pct + " %)" : ""}</span> <span class="faint">Kerze: ${esc(c.kerze || "–")}</span>` : `<span class="faint">Text der Community-Checkliste in die Notiz einfügen (⌘V) – wird automatisch erkannt.</span>`}</div>
+   <div class="sp-row"><b>M5-Close abgewartet</b>${spBtns(n, "m5close", ["ja", "nein"], sp.m5close)}<b style="min-width:auto;margin-left:10px">CRV ≥ 1:1,5</b>${spBtns(n, "crv", ["ja", "nein"], sp.crv)}</div>
+   <div class="sp-rule">${r.ok === true ? `<b class="ok">Freigegeben</b> – alle Punkte erfüllt (${esc(r.good.join(", "))}).` : r.ok === false ? `<b class="bad">Flat</b> – ${esc(r.bad.join(", "))}.` : `Regel: ${esc(RULE_LINE)}`}</div>
+   <div class="sp-row"><b>Trade genommen?</b>${spBtns(n, "taken", ["ja", "nein"], sp.taken)}</div>`;
+  if (sp.taken === "nein") {
+    h += `<div class="sp-row"><b>Valider Trade da?</b>${spBtns(n, "valid", ["ja", "nein"], sp.valid)}</div>`;
+    if (sp.valid === "ja") h += `<div class="sp-row"><b>Warum nicht?</b>${spBtns(n, "why", WHY_NOT, sp.why)}</div>`;
+  }
+  if (sp.taken === "ja" && r.ok === false) h += `<div class="sp-rule"><b class="bad">Regelbruch</b> – Trade trotz „${esc(r.bad.join(", "))}“ genommen. Kurz im Learning festhalten.</div>`;
+  return h + `</div>`;
+}
+function execStats(from, to) {
+  const ns = S.notes.filter(n => isSession(n) && n.sp && n.date >= from && n.date <= to);
+  const o = { sessions: ns.length, valid: 0, takenValid: 0, missed: 0, broken: 0, flatOk: 0, why: {} };
+  for (const n of ns) {
+    const sp = n.sp, r = ruleEval(sp);
+    if (sp.taken === "ja") { if (r.ok === false) o.broken++; else { o.valid++; o.takenValid++; } }
+    else if (sp.taken === "nein") { if (sp.valid === "ja") { o.valid++; o.missed++; if (sp.why) o.why[sp.why] = (o.why[sp.why] || 0) + 1; } else o.flatOk++; }
+  }
+  o.rate = o.valid ? o.takenValid / o.valid : null;
+  return o;
+}
+function learningOf(n) {
+  const t = noteText(n); const m = t.match(/Ein Satz:?\s*(.+?)(?=\s*(?:nächstes Mal|Beim nächsten|Ausführungs-Schwerpunkt|Regel umgesetzt|Seitenbilder aus PDF|$))/i);
+  const v = m ? m[1].trim() : ""; return v.length > 2 ? v.slice(0, 400) : "";
+}
+function weekRange(d) { const m = mondayOf(d); const e = parseD(m); e.setDate(e.getDate() + 6); return [m, dstr(e)]; }
+function weekSummaryHTML(from, to) {
+  const ts = S.trades.filter(t => t.date >= from && t.date <= to && !t.demo);
+  const rN = ts.map(Rof).filter(v => v != null), rG = ts.map(RgrossOf).filter(v => v != null);
+  const sum = a => a.reduce((x, y) => x + y, 0);
+  const ex = execStats(from, to), exAll = execStats("2026-10-01", to);
+  const days = S.notes.filter(n => n.folder === "Tageszusammenfassungen" && n.date >= from && n.date <= to).sort((a, b) => String(a.date + a.title).localeCompare(b.date + b.title));
+  const lerns = days.map(n => [n.title, learningOf(n)]).filter(x => x[1]);
+  const pct = v => v == null ? "–" : Math.round(v * 100) + " %";
+  const whyTxt = o => Object.entries(o.why).map(([k, v]) => `${k} ${v}×`).join(", ") || "–";
+  return `<h2>Zahlen der Woche (${esc(fmtDate(from))} – ${esc(fmtDate(to))})</h2><table><tbody>
+   <tr><td>Trades</td><td>${ts.length} (${ts.filter(t => t.net > 0).length} G / ${ts.filter(t => t.net < 0).length} V)</td></tr>
+   <tr><td>Ergebnis R netto / brutto</td><td>${rN.length ? fmtNum(sum(rN), 2) + " R" : "–"} / ${rG.length ? fmtNum(sum(rG), 2) + " R" : "–"}</td></tr>
+   <tr><td>Execution Rate (Woche)</td><td>${pct(ex.rate)} – ${ex.takenValid} von ${ex.valid} validen Setups genommen</td></tr>
+   <tr><td>Verpasste valide Setups</td><td>${ex.missed} (Gründe: ${esc(whyTxt(ex))})</td></tr>
+   <tr><td>Regelbrüche (genommen, obwohl nicht freigegeben)</td><td>${ex.broken}</td></tr>
+   <tr><td>Execution Rate seit 01.10.</td><td>${pct(exAll.rate)} (${exAll.takenValid}/${exAll.valid}), verpasst ${exAll.missed}, Regelbrüche ${exAll.broken}</td></tr>
+  </tbody></table>
+  <h2>Learnings der Woche</h2>${lerns.length ? `<ul>${lerns.map(([t, l]) => `<li><b>${esc(t)}:</b> ${esc(l)}</li>`).join("")}</ul>` : "<p>Keine Learnings gefunden.</p>"}
+  <h2>Wochenregel für nächste Woche</h2><p>${esc(S.settings.weekRule || "")}</p>`;
+}
+function weekClaudeText(from, to) {
+  const days = S.notes.filter(n => n.folder === "Tageszusammenfassungen" && n.date >= from && n.date <= to).sort((a, b) => String(a.date + a.title).localeCompare(b.date + b.title));
+  const ts = S.trades.filter(t => t.date >= from && t.date <= to && !t.demo).sort(byClose);
+  const ex = execStats(from, to), exAll = execStats("2026-10-01", to);
+  let t = `Wochenrückblick ${fmtDate(from)} – ${fmtDate(to)} (GBP/JPY, Risiko 10 €/Trade, Regel: ${RULE_LINE})\n\nTRADES\n`;
+  t += ts.length ? ts.map(x => `${x.date} ${x.side} Entry ${x.entry} Exit ${x.exit} netto ${fmtNum(x.net, 2)} € = ${Rof(x) == null ? "–" : fmtNum(Rof(x), 2) + " R"}`).join("\n") : "keine";
+  t += `\n\nEXECUTION\nWoche: ${ex.takenValid}/${ex.valid} valide genommen, verpasst ${ex.missed} ${JSON.stringify(ex.why)}, Regelbrüche ${ex.broken}\nSeit 01.10.: ${exAll.takenValid}/${exAll.valid}, verpasst ${exAll.missed}, Regelbrüche ${exAll.broken}\n\nTAGESZUSAMMENFASSUNGEN\n`;
+  t += days.map(n => `--- ${n.title}${n.sp ? ` [HTF ${n.sp.htf || "–"}, M5 ${n.sp.m5 || "–"}, genommen ${n.sp.taken || "–"}, valide ${n.sp.valid || "–"}, warum ${n.sp.why || "–"}, Note ${(n.sp.check || {}).grade || "–"}]` : ""}\n${noteText(n).replace(/Seitenbilder aus PDF.*$/, "").slice(0, 3000)}`).join("\n\n");
+  t += `\n\nWochenregel bisher: ${S.settings.weekRule || "–"}\nBitte: kurzer Wochenrückblick (Prozess vor Ergebnis), 3 Muster, 1 Vorschlag für die Wochenregel.`;
+  return t;
+}
+function weekPanel(n) {
+  return `<div class="sp"><div class="sp-row"><b>Wochenregel</b><input class="inp" id="wk-rule" data-ch="weekRule" value="${esc(S.settings.weekRule || "")}" placeholder="z. B. Bei 5× Ja Limit sofort aktivieren" style="flex:1;min-width:220px"></div>
+   <div class="sp-row"><b>Auswertung</b><button class="btn sm" data-act="weekFill" data-id="${esc(n.id)}">Zahlen &amp; Learnings einfügen</button><button class="btn sm" data-act="weekCopy" data-id="${esc(n.id)}">Für Claude kopieren</button></div>
+   <div class="faint" style="font-size:12px">Die Wochenregel steht ab jetzt oben in jeder neuen Session-Notiz.</div></div>`;
+}
+function startWeek() {
+  const d = todayStr(), [from, to] = weekRange(d), title = `KW ${isoWeek(d)} ${d.slice(0, 4)}`;
+  const ex = S.notes.find(n => n.folder === "Wochenrückblick" && String(n.title || "").replace(/\s+/g, " ").trim() === title);
+  if (ex) { S.noteOpen = ex.id; S.noteFolder = "Wochenrückblick"; render(); return; }
+  const id = "w" + rid();
+  saveDoc("notes", id, { title, folder: "Wochenrückblick", date: from, period: "week", html: weekSummaryHTML(from, to) + "<h2>Mein Fazit</h2><p></p>", created: new Date().toISOString(), updated: new Date().toISOString() });
+  S.noteOpen = id; S.noteFolder = "Wochenrückblick"; render();
+}
+function dayShotsOf(date) {
+  const ids = [];
+  for (const n of S.notes) if (n.date === date && n.folder === "Tageszusammenfassungen" && isSession(n)) { const m = noteHTML(n).matchAll(/data-shot="([^"]+)"/g); for (const x of m) ids.push(x[1]); }
+  return [...new Set(ids)];
+}
+
 function viewNotizen() {
   const folders = noteFolders(); const all = allNotes();
   if (!S.noteFolder) S.noteFolder = "Alle";
   const q = (S.noteQ || "").toLowerCase();
   const list = all.filter(n => (S.noteFolder === "Alle" || (n.folder || "Sonstiges") === S.noteFolder) && (!q || (n.title || "").toLowerCase().includes(q) || noteText(n).toLowerCase().includes(q))).sort(sortNotes);
   const open = all.find(n => n.id === S.noteOpen);
-  let h = topbar("Notizen", `${all.length} Notizen in ${folders.filter(f => all.some(n => (n.folder || "Sonstiges") === f)).length} Ordnern`, `<div class="newnote"><button class="btn primary" data-act="noteMenu">${ico("plus", 15)} Neue Notiz</button>${S.noteMenu ? `<div class="menu">${Object.entries(TEMPLATES).map(([k, t]) => `<button data-act="noteNew" data-v="${k}">${esc(t.name)}</button>`).join("")}</div>` : ""}</div>`) + banners();
-  h += `<div class="nb ${open ? "has-open" : ""}">
+  let h = topbar("Notizen", `${all.length} Notizen in ${folders.filter(f => all.some(n => (n.folder || "Sonstiges") === f)).length} Ordnern`, `<button class="btn primary" data-act="sessStart" data-v="London">${ico("plus", 15)} London starten</button><button class="btn" data-act="sessStart" data-v="New York">New York / Live</button><button class="btn" data-act="weekStart">Wochenrückblick</button><div class="newnote"><button class="btn" data-act="noteMenu">${ico("plus", 15)} Neue Notiz</button>${S.noteMenu ? `<div class="menu">${Object.entries(TEMPLATES).map(([k, t]) => `<button data-act="noteNew" data-v="${k}">${esc(t.name)}</button>`).join("")}</div>` : ""}</div>`) + banners();
+  const nbv = S.nbView || lsGet("pj-nbview") || ""; S.nbView = nbv;
+  h += `<div class="nb ${open ? "has-open" : ""} ${nbv.includes("f") ? "hf" : ""} ${nbv.includes("l") && open ? "hl" : ""}">
    <div class="nb-folders card">
     <button class="nb-f" data-act="noteFolder" data-v="Alle" aria-pressed="${S.noteFolder === "Alle"}"><span>Alle Notizen</span><span class="faint">${all.length}</span></button>
     ${folders.map(f => `<button class="nb-f" data-act="noteFolder" data-v="${esc(f)}" aria-pressed="${S.noteFolder === f}"><span>${esc(f)}</span><span class="faint">${all.filter(n => (n.folder || "Sonstiges") === f).length || ""}</span></button>`).join("")}
@@ -1564,13 +1710,14 @@ function noteEditor(n, folders) {
   if (n.readonlyReport) return `<div class="tools" style="justify-content:space-between"><span class="pill acc">${esc(n.source || "KI")}</span><button class="btn sm ghost nb-back" data-act="noteClose">${ico("left", 14)} Liste</button></div><h2 style="margin:8px 0">${esc(n.title)}</h2><div class="md">${noteHTML(n)}</div>`;
   const del = S.confirmDel === "note:" + n.id;
   return `<div class="nb-head">
-    <button class="btn sm ghost nb-back" data-act="noteClose">${ico("left", 14)} Liste</button>
+    <div class="tools" style="justify-content:space-between"><button class="btn sm ghost nb-back" data-act="noteClose">${ico("left", 14)} Liste</button><div class="nb-view"><button class="btn sm" data-act="nbView" data-v="f" aria-pressed="${(S.nbView || "").includes("f")}" title="Ordner ein-/ausblenden">Ordner</button><button class="btn sm" data-act="nbView" data-v="l" aria-pressed="${(S.nbView || "").includes("l")}" title="Liste ein-/ausblenden">Liste</button><button class="btn sm" data-act="nbView" data-v="fl" aria-pressed="${(S.nbView || "") === "fl"}" title="Nur die Notiz zeigen">Fokus</button></div></div>
     <input class="inp nb-title" id="ne-title" data-ch="noteField" data-k="title" value="${esc(n.title || "")}" placeholder="Titel">
     <div class="nb-meta">
      <input class="inp" type="date" id="ne-date" data-ch="noteField" data-k="date" value="${esc(n.date || "")}" style="width:auto">
      <select class="inp" id="ne-folder" data-ch="noteField" data-k="folder" style="width:auto">${folders.filter(f => f !== "KI-Berichte" || n.folder === "KI-Berichte").map(f => `<option ${f === (n.folder || "Sonstiges") ? "selected" : ""}>${esc(f)}</option>`).join("")}</select>
      ${n.date ? `<button class="btn sm" data-act="openDay" data-d="${esc(n.date)}">Zum Tag</button>` : ""}
     </div></div>
+   ${isSession(n) ? sessionPanel(n) : n.period === "week" || n.folder === "Wochenrückblick" ? weekPanel(n) : ""}
    <div class="nb-tb" role="toolbar" aria-label="Formatierung">
     <button class="btn sm" data-cmd="formatBlock" data-v="H2" title="Überschrift">H</button><button class="btn sm" data-cmd="formatBlock" data-v="H3" title="Zwischenüberschrift">h</button>
     <button class="btn sm" data-cmd="bold" title="Fett"><b>B</b></button><button class="btn sm" data-cmd="italic" title="Kursiv"><i>I</i></button>
@@ -1606,7 +1753,7 @@ function render() {
   let m = "";
   if (S.pbEdit) m = pbEditor(S.pbEdit);
   else if (S.openTrade && getTrade(S.openTrade)) m = tradeDrawer(getTrade(S.openTrade));
-  if (S.lightbox) m += `<div class="lightbox" data-act="closeLb"><img src="/_blob/${esc(S.lightbox)}" alt="Screenshot in voller Größe"></div>`;
+  if (S.lightbox) m += `<div class="lightbox ${S.lbZoom ? "zoom" : ""}" data-act="closeLb"><img data-shot="${esc(S.lightbox)}" data-act="lbZoom" alt="Bild in voller Größe"><div class="lb-hint">${S.lbZoom ? "Klick aufs Bild: einpassen" : "Klick aufs Bild: volle Breite"} · Esc schließt</div></div>`;
   $("#modal").innerHTML = m;
   const nd = $(".drawer"); if (nd && dr) nd.scrollTop = ds;
   document.body.style.overflow = m ? "hidden" : "";
@@ -1631,7 +1778,7 @@ function saveLater(col, id, data, ms = 800) {
 function flushAll() { for (const k in deb) { clearTimeout(deb[k]); } }
 
 /* ========= Routing ========= */
-function route() { const h = location.hash.replace("#", ""); S.view = VIEWS[h] ? h : "dashboard"; }
+function route() { const h = location.hash.replace("#", ""); S.view = VIEWS[h] ? h : "notizen"; }
 window.addEventListener("hashchange", () => { route(); S.pbOpen = S.view === "playbooks" ? S.pbOpen : null; S.confirmDel = null; window.scrollTo(0, 0); render(); });
 
 /* ========= Actions ========= */
@@ -1649,6 +1796,12 @@ const ACT = {
   noteFolder(a) { S.noteFolder = a.dataset.v; S.noteOpen = null; render(); },
   noteOpen(a) { S.noteOpen = a.dataset.id; S.confirmDel = null; render(); },
   noteClose() { S.noteOpen = null; render(); },
+  sessStart(a) { startSession(a.dataset.v); },
+  weekStart() { startWeek(); },
+  spSet(a) { saveNoteBody(); const n = S.notes.find(x => x.id === a.dataset.id); if (!n) return; const sp = { ...(n.sp || {}) }; const k = a.dataset.k, v = a.dataset.v; sp[k] = sp[k] === v ? null : v; if (k === "taken" && sp.taken !== "nein") { sp.valid = null; sp.why = null; } if (k === "valid" && sp.valid !== "ja") sp.why = null; saveDoc("notes", n.id, { ...S.notes.find(x => x.id === n.id), sp, updated: new Date().toISOString() }); render(); },
+  weekFill(a) { const n = S.notes.find(x => x.id === a.dataset.id); if (!n) return; const [f, t] = weekRange(n.date || todayStr()); saveNoteBody(); setTimeout(() => { noteInsert(weekSummaryHTML(f, t)); toast("Zahlen und Learnings eingefügt"); }, 30); },
+  async weekCopy(a) { const n = S.notes.find(x => x.id === a.dataset.id); if (!n) return; const [f, t] = weekRange(n.date || todayStr()); try { await navigator.clipboard.writeText(weekClaudeText(f, t)); toast("Kopiert – jetzt im Chat mit Claude einfügen (⌘V)"); } catch (e) { toast("Kopieren nicht möglich: " + (e.message || e)); } },
+  nbView(a) { const v = a.dataset.v; let c = S.nbView || ""; if (v === "fl") c = c === "fl" ? "" : "fl"; else c = c.includes(v) ? c.replace(v, "") : (c + v).split("").sort().join(""); S.nbView = c; lsSet("pj-nbview", c); render(); },
   noteGo(a) { S.noteOpen = a.dataset.id; S.noteFolder = "Alle"; location.hash = "#notizen"; if (S.view === "notizen") render(); },
   folderAdd() { const v = ($("#nf-new").value || "").trim(); if (!v) return; const l = S.settings.noteFolders || []; if (!l.includes(v) && !NOTE_FOLDERS.includes(v)) patchSettings({ noteFolders: [...l, v] }); S.noteFolder = v; render(); },
   noteStats() { const n = S.notes.find(x => x.id === S.noteOpen); if (!n) return; const [f, t] = periodOf(n); noteInsert(statsTableHTML(f, t) + "<p></p>"); },
@@ -1689,7 +1842,8 @@ const ACT = {
   rate(a) { const t = getTrade(S.openTrade); const v = +a.dataset.v; patchTrade(t.id, { rating: t.rating === v ? 0 : v }); render(); },
   togArr(a) { const t = getTrade(S.openTrade), k = a.dataset.k, v = a.dataset.v; const arr = [...(t[k] || [])]; const i = arr.indexOf(v); if (i >= 0) arr.splice(i, 1); else arr.push(v); patchTrade(t.id, { [k]: arr }); render(); },
   lightbox(a) { S.lightbox = a.dataset.id; render(); },
-  closeLb() { S.lightbox = null; render(); },
+  closeLb() { S.lightbox = null; S.lbZoom = false; render(); },
+  lbZoom() { S.lbZoom = !S.lbZoom; render(); },
   async delShot(a) { const t = getTrade(S.openTrade), id = a.dataset.id; await patchTrade(t.id, { shots: (t.shots || []).filter(x => x !== id) }); render(); Store.removeShot(id); },
   askDel() { S.confirmDel = S.openTrade; render(); },
   cancelDel() { S.confirmDel = null; render(); },
@@ -1762,6 +1916,7 @@ function onField(e) {
     case "noteQ": if (isInput) { S.noteQ = el.value; render(); } break;
     case "noteField": { const n = S.notes.find(x => x.id === S.noteOpen); if (!n) break; if (k === "title" && isInput) saveLater("notes", n.id, { ...n, title: el.value, updated: new Date().toISOString() }); else if (k !== "title" && !isInput) { saveDoc("notes", n.id, { ...n, [k]: el.value, updated: new Date().toISOString() }); if (k === "folder") S.noteFolder = el.value; render(); } break; }
     case "noteImg": if (!isInput && el.files.length) noteImages([...el.files]); break;
+    case "weekRule": if (!isInput) patchSettings({ weekRule: el.value.trim() }); break;
     case "strategy": if (isInput) saveLater("meta", "strategy", { text: el.value }); break;
     case "mcpWrite": if (!isInput) { saveDoc("meta", "mcp", { ...S.mcp, write: el.checked }); render(); } break;
     case "weekText": if (isInput) { const w = el.dataset.w, wd = S.weeks[w] || {}; saveLater("weeks", w, { ...wd, answers: { ...(wd.answers || {}), [el.dataset.q]: el.value } }); } break;
@@ -1805,11 +1960,19 @@ async function noteImages(files) {
 }
 document.addEventListener("input", e => { if (e.target.id === "ne-body") saveNoteBody(); });
 document.addEventListener("mousedown", e => { const b = e.target.closest("[data-cmd]"); if (!b) return; e.preventDefault(); const ed = $("#ne-body"); if (!ed) return; if (document.activeElement !== ed) { ed.focus(); if (noteRange) { const s = document.getSelection(); s.removeAllRanges(); s.addRange(noteRange); } } document.execCommand(b.dataset.cmd, false, b.dataset.v ? "<" + b.dataset.v + ">" : null); saveNoteBody(); });
-document.addEventListener("dblclick", e => { const i = e.target.closest("#ne-body img[data-shot], .md img[data-shot]"); if (i) { S.lightbox = i.dataset.shot; render(); } });
+document.addEventListener("click", e => { const i = e.target.closest && e.target.closest("#ne-body img[data-shot], .md img[data-shot], .dayshots img[data-shot]"); if (i) { e.preventDefault(); S.lightbox = i.dataset.shot; S.lbZoom = false; render(); } });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && S.lightbox) { S.lightbox = null; S.lbZoom = false; render(); } });
 document.addEventListener("paste", e => {
   if (e.target.closest && e.target.closest("#ne-body")) {
     const files = [...(e.clipboardData?.files || [])].filter(f => f.type.startsWith("image/"));
     if (files.length) { e.preventDefault(); noteImages(files); return; }
+    const plain = e.clipboardData?.getData("text/plain") || ""; const ck = parseChecklist(plain);
+    if (ck) {
+      e.preventDefault(); const body = $("#ne-body"), id = body && body.dataset.note;
+      noteInsert(`<blockquote><b>Prime-Checkliste${ck.time ? " " + esc(ck.time) : ""}</b><br>${plain.split(/\r?\n/).slice(1).filter(l => l.trim()).map(l => esc(l.trim())).join("<br>")}</blockquote><p></p>`);
+      setTimeout(() => { const n = S.notes.find(x => x.id === id); if (n) { saveDoc("notes", n.id, { ...n, kind: n.kind || "session", sp: { ...(n.sp || {}), check: ck }, updated: new Date().toISOString() }); render(); toast(`Checkliste erkannt: Note ${ck.grade || "?"}`); } }, 1000);
+      return;
+    }
     const html = e.clipboardData?.getData("text/html");
     if (html) { e.preventDefault(); noteInsert(sanitizeHTML(html, true)); }
     return;
@@ -1837,7 +2000,7 @@ async function uploadShots(files) {
 
 
 /* ========= Bilder-Import (Zip mit bilder-zuordnung.json) – v1.1 ========= */
-const APP_VERSION = "1.1 · 17.11.26";
+const APP_VERSION = "1.2 · 17.11.26";
 async function readZip(file) {
   const buf = new Uint8Array(await file.arrayBuffer()); const dv = new DataView(buf.buffer);
   let e = buf.length - 22; while (e >= 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
@@ -1928,7 +2091,7 @@ async function restoreBackup(file) {
     if (d.settings) { await saveMany("meta", [{ id: "settings", ...S.settings, ...d.settings }]); n++; }
     if (Array.isArray(d.playbooks)) { await saveMany("playbooks", d.playbooks.filter(p => p.id && p.name)); n += d.playbooks.length; }
     if (Array.isArray(d.trades)) { await saveMany("trades", d.trades.filter(t => t.id && t.date)); n += d.trades.length; }
-    if (Array.isArray(d.notes)) { await saveMany("notes", d.notes.filter(x => x.id)); n += d.notes.length; }
+    if (Array.isArray(d.notes)) { const keep = x => { const ex = S.notes.find(y => y.id === x.id); if (!ex) return x; const h = noteHTML(ex), i = h.indexOf("<hr><p><b>Seitenbilder aus PDF"); const out = { ...ex, ...x }; if (i >= 0 && !String(x.html || "").includes("Seitenbilder aus PDF")) out.html = (x.html || "") + h.slice(i); return out; }; await saveMany("notes", d.notes.filter(x => x.id).map(keep)); n += d.notes.length; }
     if (d.remove && typeof d.remove === "object") for (const [col, ids] of Object.entries(d.remove)) if (["reports", "notes", "trades", "days", "weeks"].includes(col) && Array.isArray(ids)) { await delMany(col, ids); ids.forEach(id => { if (col === "reports") S.reports = S.reports.filter(r => r.id !== id); if (col === "notes") S.notes = S.notes.filter(r => r.id !== id); }); }
     if (Array.isArray(d.reports)) { await saveMany("reports", d.reports.filter(r => r.id && r.title)); n += d.reports.length; }
     if (typeof d.strategy === "string" && d.strategy.trim()) { await saveMany("meta", [{ id: "strategy", text: d.strategy }]); n++; }
@@ -1958,7 +2121,7 @@ async function loadData(silent) {
 }
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && S.loaded && Store.mode === "cloud" && !dirty.size && Date.now() - lastLoad > 60000) loadData(true); });
 async function init() {
-  route(); S.unit = lsGet("pj-unit") || "eur";
+  route(); S.unit = lsGet("pj-unit") || "R";
   Store.init();
   if (Store.mode === "cloud") {
     let uid = null; try { uid = await Store.session(); } catch (e) { }
