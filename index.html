@@ -427,7 +427,7 @@ const SESSIONS = ["Asien", "London", "New York", "(unbekannt)"];
 
 /* ========= News GBP/JPY ========= */
 const NEWS_URL = "https://nfs.faireconomy.media/ff_calendar_thisweek.json";
-const NEWS_CUR = ["GBP", "JPY"];
+const NEWS_CUR = ["GBP", "JPY", "USD"];
 const IMPACT = { High: "Hoch", Medium: "Mittel", Low: "Niedrig", Holiday: "Feiertag" };
 function localISO(d) { return `${dstr(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}:00`; }
 function rebuildNews() {
@@ -440,7 +440,7 @@ async function ensureNews(force) {
   try {
     const r = await fetch(NEWS_URL, { cache: "no-store" }); if (!r.ok) throw new Error("HTTP " + r.status);
     const raw = await r.json();
-    const events = raw.filter(e => NEWS_CUR.includes(e.country)).map(e => { const d = new Date(e.date); return { t: localISO(d), cur: e.country, title: e.title, impact: e.impact, forecast: e.forecast || "", previous: e.previous || "", actual: e.actual || "" }; });
+    const events = raw.filter(e => NEWS_CUR.includes(e.country) && (e.country !== "USD" || e.impact === "High")).map(e => { const d = new Date(e.date); return { t: localISO(d), cur: e.country, title: e.title, impact: e.impact, forecast: e.forecast || "", previous: e.previous || "", actual: e.actual || "" }; });
     const dates = raw.map(e => new Date(e.date)).filter(d => !isNaN(d)).sort((a, b) => a - b);
     if (!dates.length) throw new Error("leer");
     const from = new Date(dates[0]); from.setHours(0, 0, 0, 0); while (from.getDay() !== 0) from.setDate(from.getDate() - 1);
@@ -985,7 +985,7 @@ function viewDashboard() {
    <div class="card"><h3><span>Kalender</span><span class="tools">${monthNav(ym)}</span></h3>${calendarHTML(ym, allSt.daily, true)}</div>
    <div class="card"><h3>Letzte Trades <a href="#trades" class="hint">Alle ansehen</a></h3>${recent.length ? `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Datum</th><th>Symbol</th><th class="r">Netto</th></tr></thead><tbody>${recent.map(t => `<tr class="click" data-act="openTrade" data-id="${esc(t.id)}"><td>${fmtDate(t.date)}</td><td><b>${esc(t.symbol)}</b> <span class="pill ${t.side}">${t.side === "long" ? "Long" : "Short"}</span></td><td class="r num ${cls(t.net)}">${fmtMoney(t.net)}</td></tr>`).join("")}</tbody></table></div>` : emptyBox("Keine Trades im Zeitraum")}</div>
   </div>`;
-  h += `<div class="grid g-2"><div class="card"><h3>Nächste News GBP &amp; JPY <a href="#news" class="hint">Kalender öffnen</a></h3>${nextNewsHTML(6)}</div>
+  h += `<div class="grid g-2"><div class="card"><h3>Nächste News GBP, JPY + USD <a href="#news" class="hint">Kalender öffnen</a></h3>${nextNewsHTML(6)}</div>
    <div class="card"><h3>Nach Session <button class="btn ghost sm hint" data-act="dimLink" data-v="session">Details</button></h3>${breakdownTable(groupRows(ts, sessionOf, SESSIONS), "Session", true)}</div></div>`;
   if (S.playbooks.length) {
     h += `<div class="card"><h3>Playbook-Performance <a href="#playbooks" class="hint">Playbooks öffnen</a></h3><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Playbook</th><th class="r">Trades</th><th class="r">Trefferquote</th><th class="r">Profit-Faktor</th><th class="r">Ø R</th><th class="r">Netto-P&amp;L</th></tr></thead><tbody>
@@ -1378,7 +1378,7 @@ function newsRow(e, now) {
 }
 function nextNewsHTML(n) {
   const now = new Date(); const up = S.news.filter(e => toDate(e.t) >= new Date(now.getTime() - 15 * 60000) && impactOk(e, "hm")).slice(0, n);
-  if (!up.length) return (S.newsErr || !newsCovered(todayStr())) ? `<div id="tvcal-dash" style="min-height:320px"></div>` : emptyBox("Keine anstehenden High- oder Medium-News für GBP und JPY in dieser Woche.");
+  if (!up.length) return (S.newsErr || !newsCovered(todayStr())) ? `<div id="tvcal-dash" style="min-height:320px"></div>` : emptyBox("Keine anstehenden News für GBP/JPY (hoch + mittel) oder USD (hoch) in dieser Woche.");
   return `<div class="tbl-wrap"><table class="tbl"><tbody>${up.map(e => { const d = toDate(e.t), mins = Math.round((d - now) / 60000); const when = mins < 0 ? "gerade" : mins < 60 ? `in ${mins} Min` : mins < 1440 ? `in ${Math.floor(mins / 60)} Std` : `${WD[wdIdx(e.t)]} ${fmtDate(e.t).slice(0, 5)}`; return `<tr><td class="num">${esc(e.t.slice(11, 16))}</td><td>${impactDot(e.impact)} <span class="pill ${e.cur === "GBP" ? "acc" : ""}">${esc(e.cur)}</span></td><td style="white-space:normal"><b>${esc(e.title)}</b></td><td class="r faint">${when}</td></tr>`; }).join("")}</tbody></table></div>`;
 }
 function dayNewsHTML(date) {
@@ -1391,7 +1391,7 @@ function viewNews() {
   const wk = Object.values(S.newsWeeks).sort((a, b) => b.from.localeCompare(a.from))[0];
   const ev = wk ? wk.events.filter(e => impactOk(e, lvl)).sort((a, b) => a.t.localeCompare(b.t)) : [];
   const byDay = {}; ev.forEach(e => (byDay[e.t.slice(0, 10)] = byDay[e.t.slice(0, 10)] || []).push(e));
-  let h = topbar("News GBP & JPY", wk ? `Woche ${fmtDate(wk.from)} – ${fmtDate(wk.to)} · Zeiten in deiner Ortszeit` : "Wirtschaftskalender für dein Paar",
+  let h = topbar("News GBP, JPY + USD (rot)", wk ? `Woche ${fmtDate(wk.from)} – ${fmtDate(wk.to)} · Zeiten in deiner Ortszeit` : "Wirtschaftskalender für dein Paar",
     `<div class="seg" role="group" aria-label="Wichtigkeit"><button data-act="nfilter" data-v="h" aria-pressed="${lvl === "h"}">Hoch</button><button data-act="nfilter" data-v="hm" aria-pressed="${lvl === "hm"}">Hoch + Mittel</button><button data-act="nfilter" data-v="all" aria-pressed="${lvl === "all"}">Alle</button></div><button class="btn" data-act="newsRefresh">Aktualisieren</button>`) + banners();
   if ((S.newsErr || !newsCovered(today)) && !wk) h += `<div class="banner warn">Die Termine dieser Woche konnten nicht geladen werden. Unten siehst du den Kalender von TradingView.</div>`;
   if (wk) {
@@ -1407,7 +1407,7 @@ function mountTVin(id, hgt) {
   const dark = document.documentElement.dataset.theme === "dark" || (!document.documentElement.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches);
   el.innerHTML = '<div class="tradingview-widget-container"><div class="tradingview-widget-container__widget"></div></div>';
   const sc = document.createElement("script"); sc.src = "https://s3.tradingview.com/external-embedding/embed-widget-events.js"; sc.async = true;
-  sc.textContent = JSON.stringify({ colorTheme: dark ? "dark" : "light", isTransparent: true, width: "100%", height: hgt, locale: "de_DE", importanceFilter: "0,1", countryFilter: "gb,jp" });
+  sc.textContent = JSON.stringify({ colorTheme: dark ? "dark" : "light", isTransparent: true, width: "100%", height: hgt, locale: "de_DE", importanceFilter: "0,1", countryFilter: "gb,jp,us" });
   el.firstChild.appendChild(sc);
 }
 
@@ -1665,7 +1665,7 @@ function ruleEval(sp) {
 }
 function newsTodayHTML(d) {
   const ev = (S.news || []).filter(e => e.t && e.t.slice(0, 10) === d && (e.impact === "High" || e.impact === "Medium"));
-  if (!ev.length) return newsCovered(d) ? `<p>Keine wichtigen GBP/JPY-News heute (Forex Factory).</p>` : `<p><b>News konnten nicht automatisch geladen werden</b> – bitte kurz im Kalender prüfen (Menü News oder Forex Factory).</p>`;
+  if (!ev.length) return newsCovered(d) ? `<p>Keine wichtigen GBP/JPY-News und keine roten USD-News heute (Forex Factory).</p>` : `<p><b>News konnten nicht automatisch geladen werden</b> – bitte kurz im Kalender prüfen (Menü News oder Forex Factory).</p>`;
   return `<ul>${ev.map(e => `<li><b>${esc(e.t.slice(11, 16))}</b> ${esc(e.cur)} – ${esc(e.title)}${e.impact === "High" ? " <b>(hoch)</b>" : ""}</li>`).join("")}</ul>`;
 }
 function sessionTemplate(sess, d) {
@@ -2134,7 +2134,7 @@ async function uploadShots(files) {
 
 
 /* ========= Bilder-Import (Zip mit bilder-zuordnung.json) – v1.1 ========= */
-const APP_VERSION = "1.3.2 · 17.11.26"; /* Design: Icon-Leiste, Notizbaum, volle Breite */
+const APP_VERSION = "1.3.3 · 17.11.26"; /* Design: Icon-Leiste, Notizbaum, volle Breite */
 async function readZip(file) {
   const buf = new Uint8Array(await file.arrayBuffer()); const dv = new DataView(buf.buffer);
   let e = buf.length - 22; while (e >= 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
