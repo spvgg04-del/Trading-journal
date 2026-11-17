@@ -710,6 +710,10 @@ function numv(s) {
   else s = s.replace(/,/g, "");
   return parseFloat(s);
 }
+function tzOffMs(tz, utcMs) {
+  try { const p = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: tz, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" }).formatToParts(new Date(utcMs)).map(x => [x.type, x.value]));
+    return Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second) - utcMs; } catch (e) { return 0; }
+}
 function parseTime(s, shiftH) {
   if (!s) return null; s = String(s).trim(); let m, Y, M, D, h = 0, mi = 0, se = 0;
   if ((m = s.match(/^(\d{4})(\d{2})(\d{2})(?:[;\s,T]+(\d{2}):?(\d{2}):?(\d{2})?)?/))) [, Y, M, D, h = 0, mi = 0, se = 0] = m;
@@ -719,6 +723,7 @@ function parseTime(s, shiftH) {
   else return null;
   const d = new Date(+Y, +M - 1, +D, +h, +mi, +(se || 0));
   if (shiftH) d.setTime(d.getTime() + shiftH * 3600000);
+  else if (shiftH === 0) { const nyMs = Date.UTC(+Y, +M - 1, +D, +h, +mi, +(se || 0)); d.setTime(nyMs - tzOffMs("America/New_York", nyMs)); }
   return `${dstr(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 function parseIB(text, shiftH) {
@@ -825,9 +830,12 @@ function buildImport(text, name) {
   const { execs, skipped } = parseIB(text, +S.settings.tzShift || 0);
   const known = new Set(); S.trades.forEach(t => (t.execKeys || []).forEach(k => known.add(k)));
   const fresh = execs.filter(e => !known.has(e.key));
-  const { trades, openExecs } = groupExecs(fresh, base);
+  const grp = groupExecs(fresh, base); const openExecs = grp.openExecs;
+  const old = S.trades.filter(t => !(t.execKeys || []).length && !t.demo);
+  const same = (a, b) => a.side === b.side && (String(a.openTime || "").slice(0, 16) === String(b.openTime || "").slice(0, 16) || (a.date === b.date && a.entry != null && Math.abs(a.entry - b.entry) < 0.02 && Math.abs((a.qty || 0) - (b.qty || 0)) < 1e-6));
+  let dupT = 0; const trades = grp.trades.filter(x => { if (old.some(t => same(t, x))) { dupT += x.execKeys.length; return false; } return true; });
   trades.sort(byClose);
-  return { name, execs: execs.length, dup: execs.length - fresh.length, skipped, trades, openExecs, fx: trades.filter(t => t.fxMissing).length };
+  return { name, execs: execs.length, dup: execs.length - fresh.length + dupT, skipped, trades, openExecs, fx: trades.filter(t => t.fxMissing).length };
 }
 
 /* ========= Demo data ========= */
@@ -892,7 +900,7 @@ function sideHTML() {
   const st = S.dbState === "loading" ? "Lade Daten …" : S.dbState === "error" ? "Daten konnten nicht geladen werden" : Store.mode === "cloud" ? `Cloud · ${S.trades.length} Trades${Store.email ? " · " + Store.email : ""}` : `Lokal in diesem Browser · ${S.trades.length} Trades`;
   return `<div class="brand"><svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><rect width="26" height="26" rx="7" fill="var(--accent)"/><path d="M7 17l4-5 3 3 5-7" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Prime Journal</span></div>
   <nav class="nav">${NAV.map(([k, l]) => `<a href="#${k}" ${S.view === k ? 'aria-current="page"' : ""}>${ico(k)}<span>${l}</span></a>`).join("")}</nav>
-  <div class="grow"></div><div class="status">${esc(st)}</div>`;
+  <div class="grow"></div><div class="status">${esc(st)}<br><span class="faint">Version ${APP_VERSION}</span></div>`;
 }
 function topbar(title, sub, extra = "") {
   return `<div class="topbar"><div><h1>${esc(title)}</h1>${sub ? `<div class="sub">${sub}</div>` : ""}</div><div class="tools">${extra}</div></div>`;
@@ -1234,7 +1242,7 @@ function viewImport() {
    <div class="muted" style="font-size:13px"><b style="color:var(--fg)">Aus Tradezella:</b> In der Trade-Ansicht alle Trades auswählen und als CSV exportieren, dann hier ablegen. Notizen, Tags, Setups, Fehler, SL/TP und Risiko werden übernommen, soweit die Datei sie enthält. Setups mit dem Namen eines Playbooks werden direkt zugeordnet.</div>
    <div class="sep" style="margin:12px 0"></div>
    <label class="f">Zeitverschiebung beim Import (Stunden)<input class="inp num" type="number" step="1" id="imp-tz" data-ch="setNum" data-k="tzShift" value="${esc(S.settings.tzShift || 0)}"></label>
-   <div class="faint" style="font-size:12px;margin-top:6px">IBKR exportiert Zeiten oft in New-York-Zeit. Mit +6 werden sie in deutsche Zeit umgerechnet.</div>
+   <div class="faint" style="font-size:12px;margin-top:6px">IBKR exportiert Zeiten in New-York-Zeit. Bei 0 rechnet das Journal automatisch (inkl. Sommer-/Winterzeit) in deine Zeit um – empfohlen. Eine andere Zahl verschiebt fest um so viele Stunden.</div>
   </div></div>`;
   h += `<div class="card"><h3>Trade manuell erfassen</h3><div class="formgrid">
    <label class="f">Symbol<input class="inp" id="m-sym" data-ch="man" data-k="symbol" value="${esc(m.symbol)}" placeholder="GBP.JPY"></label>
@@ -1369,7 +1377,7 @@ function viewSettings() {
    <div class="card"><h3>Fragen für den Wochenrückblick <span class="hint">eine pro Zeile</span></h3><textarea class="inp" id="s-wq" data-ch="setList" data-k="weekQuestions" style="min-height:120px">${esc((s.weekQuestions || []).join("\n"))}</textarea></div>
    <div class="card"><h3>Stimmungen <span class="hint">eine pro Zeile</span></h3><textarea class="inp" id="s-moods" data-ch="setList" data-k="moods" style="min-height:120px">${esc((s.moods || []).join("\n"))}</textarea></div></div>`;
   h += `<div class="card"><h3>Sichern &amp; wiederherstellen</h3><div class="muted" style="font-size:13px;margin-bottom:12px">Exportiere alle ${S.trades.length} Trades als CSV oder alles inklusive Notizen und Playbooks als JSON-Sicherung. Eine Sicherung (oder deine Playbook-Datei) spielst du hier wieder ein. Vorhandene Einträge mit gleicher Kennung werden überschrieben.</div>
-    <div class="tools"><button class="btn" data-act="expCSV">${ico("dl", 15)} Trades als CSV</button><button class="btn" data-act="expJSON">${ico("dl", 15)} Sicherung (JSON)</button><label class="btn">${S.busy === "restore" ? "Spiele ein …" : "Sicherung einspielen"}<input type="file" accept=".json,application/json" id="s-restore" data-ch="restore" hidden></label></div></div>`;
+    <div class="tools"><button class="btn" data-act="expCSV">${ico("dl", 15)} Trades als CSV</button><button class="btn" data-act="expJSON">${ico("dl", 15)} Sicherung (JSON)</button><label class="btn">${S.busy === "restore" ? "Spiele ein …" : "Sicherung einspielen"}<input type="file" accept=".json,application/json" id="s-restore" data-ch="restore" hidden></label><label class="btn"><span id="imgzip-lab">${S.busy === "imgzip" ? esc(S.imgProg || "Bilder werden eingespielt …") : "Bilder einspielen (Zip)"}</span><input type="file" accept=".zip,application/zip" data-ch="imgzip" hidden></label></div><div class="faint" style="font-size:12px;margin-top:8px">Bilder-Zip (z. B. Tradezella-Bilder.zip mit bilder-zuordnung.json): Seiten werden an die passenden Notizen bzw. Trades gehängt. Bereits eingespielte Bilder werden übersprungen. Fenster während des Einspielens offen lassen.</div></div>`;
   h += `<div class="card"><h3>Alle Trades löschen</h3><div class="tools"><span class="muted" style="font-size:13px">Entfernt alle Trades. Playbooks, Notizen und Einstellungen bleiben.</span>${S.confirmDel === "all" ? `<button class="btn" data-act="cancelDel">Abbrechen</button><button class="btn danger solid" data-act="delAll" ${S.busy ? "disabled" : ""}>Ja, ${S.trades.length} Trades löschen</button>` : `<button class="btn danger" data-act="askDelAll">Alle Trades löschen</button>`}</div></div>`;
   return h;
 }
@@ -1449,7 +1457,7 @@ function parseTZ(text) {
   for (const r of rows.slice(hi + 1)) {
     const sym = g(r, "symbol"); const net = numv(g(r, "net").replace(/[$€£\s]/g, ""));
     if (!sym || !isFinite(net)) { skipped++; continue; }
-    const open = parseTime((g(r, "odate") + " " + g(r, "otime")).trim(), 0), close = parseTime((g(r, "cdate") || g(r, "odate")) + " " + (g(r, "ctime") || g(r, "otime")), 0) || open;
+    const open = parseTime((g(r, "odate") + " " + g(r, "otime")).trim(), null), close = parseTime((g(r, "cdate") || g(r, "odate")) + " " + (g(r, "ctime") || g(r, "otime")), null) || open;
     if (!close) { skipped++; continue; }
     const entry = numv(g(r, "entry")), exit = numv(g(r, "exit"));
     let sd = g(r, "side").toLowerCase(); let side = /short|sell|sld/.test(sd) ? "short" : /long|buy|bot/.test(sd) ? "long" : (isFinite(entry) && isFinite(exit) && exit !== entry ? ((exit > entry) === (net > 0) ? "long" : "short") : "long");
@@ -1758,6 +1766,7 @@ function onField(e) {
     case "mcpWrite": if (!isInput) { saveDoc("meta", "mcp", { ...S.mcp, write: el.checked }); render(); } break;
     case "weekText": if (isInput) { const w = el.dataset.w, wd = S.weeks[w] || {}; saveLater("weeks", w, { ...wd, answers: { ...(wd.answers || {}), [el.dataset.q]: el.value } }); } break;
     case "restore": if (!isInput && el.files[0]) restoreBackup(el.files[0]); break;
+    case "imgzip": if (!isInput && el.files[0] && S.busy !== "imgzip") importImageZip(el.files[0]); break;
     case "dayText": if (isInput) saveLater("days", el.dataset.d, { ...(S.days[el.dataset.d] || {}), [k]: el.value }); break;
     case "tf": if (el.tagName === "SELECT" ? !isInput : isInput) { S.tf[k] = el.value; render(); } break;
     case "tPb": if (!isInput) { patchTrade(S.openTrade, { playbook: el.value }); render(); } break;
@@ -1826,6 +1835,92 @@ async function uploadShots(files) {
   S.busy = null; render();
 }
 
+
+/* ========= Bilder-Import (Zip mit bilder-zuordnung.json) – v1.1 ========= */
+const APP_VERSION = "1.1 · 17.11.26";
+async function readZip(file) {
+  const buf = new Uint8Array(await file.arrayBuffer()); const dv = new DataView(buf.buffer);
+  let e = buf.length - 22; while (e >= 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
+  if (e < 0) throw new Error("Keine gültige Zip-Datei");
+  const count = dv.getUint16(e + 10, true); let p = dv.getUint32(e + 16, true);
+  const dec = new TextDecoder(); const out = {};
+  for (let i = 0; i < count; i++) {
+    if (dv.getUint32(p, true) !== 0x02014b50) break;
+    const method = dv.getUint16(p + 10, true), csize = dv.getUint32(p + 20, true);
+    const nl = dv.getUint16(p + 28, true), el = dv.getUint16(p + 30, true), cl = dv.getUint16(p + 32, true), lo = dv.getUint32(p + 42, true);
+    const name = dec.decode(buf.subarray(p + 46, p + 46 + nl)); p += 46 + nl + el + cl;
+    if (name.endsWith("/") || name.startsWith("__MACOSX")) continue;
+    const start = lo + 30 + dv.getUint16(lo + 26, true) + dv.getUint16(lo + 28, true);
+    const data = buf.subarray(start, start + csize);
+    out[name.split("/").pop()] = { method, data };
+  }
+  return out;
+}
+async function zipEntry(en) {
+  if (en.method === 0) return new Blob([en.data]);
+  if (en.method === 8) return await new Response(new Blob([en.data]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).blob();
+  throw new Error("Zip-Format nicht unterstützt");
+}
+const IMG_MONTHS = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+function imgTarget(it) {
+  const first = it.images[0], key = first.replace(/_s\d+\.jpg$/, "");
+  const byTitle = (f, ok) => S.notes.find(n => (!f || n.folder === f) && ok(String(n.title || "").trim()));
+  const newNote = (title, folder, date, period) => ({ type: "new", note: { id: "pdfimg-" + key, title, folder, date: date || "", period: period || "day", html: "", source: "pdf-bilder", created: new Date().toISOString() } });
+  if (it.kind === "deckblatt") return { type: "skip" };
+  const viaImages = S.notes.find(n => (n.images || []).includes(first));
+  if (viaImages) return { type: "note", id: viaImages.id };
+  const d = it.date || "", dm = d.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const label = dm ? `${dm[3]}.${dm[2]}.${dm[1].slice(2)}` : d;
+  if (it.kind === "tag") {
+    const t = (label + " " + (it.session || "")).trim();
+    const n = byTitle("Tageszusammenfassungen", x => x === t); if (n) return { type: "note", id: n.id };
+    return newNote(t, "Tageszusammenfassungen", d, "day");
+  }
+  if (it.kind === "trade") {
+    const nr = +((key.match(/__(\d+)$/) || [])[1] || 1);
+    const ts = S.trades.filter(t => !t.demo && (t.date === d || String(t.openTime || "").slice(0, 10) === d)).sort((a, b) => String(a.openTime).localeCompare(String(b.openTime)));
+    if (ts[nr - 1]) return { type: "trade", id: ts[nr - 1].id };
+    return newNote(`Trade ${label}${nr > 1 ? " (" + nr + ")" : ""}`, "Trade Notes", d, "day");
+  }
+  if (it.kind === "woche") { const kw = d.replace("KW", ""); const n = byTitle(null, x => x.replace(/\s+/g, " ") === `KW ${kw} 2026`); if (n) return { type: "note", id: n.id }; return newNote(`KW ${kw} 2026`, "Wochenrückblick", "", "week"); }
+  if (it.kind === "monat") { const m = IMG_MONTHS[+d.slice(5, 7) - 1] + " " + d.slice(0, 4); const n = byTitle(null, x => x === m); if (n) return { type: "note", id: n.id }; return newNote(m, "Monatsrückblick", d + "-01", "month"); }
+  if (it.kind === "rueckblick") { const n = byTitle(null, x => x.startsWith("Februar bis Juni 2026")); if (n) return { type: "note", id: n.id }; return newNote("Februar bis Juni 2026 – Zusammenfassung", "Monatsrückblick", "2026-06-30", "month"); }
+  if (it.kind === "learning") { const st = d.startsWith("Master") ? "Master-Zusammenfassung" : "Wichtige Learnings"; const n = byTitle(null, x => x.startsWith(st)); if (n) return { type: "note", id: n.id }; return newNote(st, "Learnings", "", "custom"); }
+  if (it.kind === "kalender") return newNote(`Kalender ${IMG_MONTHS[+d.slice(5, 7) - 1]} ${d.slice(0, 4)}`, "Monatsrückblick", d + "-01", "month");
+  return newNote(key, "Sonstiges", "", "custom");
+}
+async function importImageZip(file) {
+  S.busy = "imgzip"; S.imgProg = "Zip wird gelesen …"; render();
+  try {
+    const z = await readZip(file);
+    const mapE = z["bilder-zuordnung.json"]; if (!mapE) throw new Error("bilder-zuordnung.json fehlt in der Zip");
+    const map = JSON.parse(await (await zipEntry(mapE)).text());
+    const done = new Set(S.settings.imgDone || []);
+    const todo = map.filter(it => it.images && it.images.some(n => !done.has(n) && z[n]));
+    const total = todo.reduce((s, it) => s + it.images.length, 0); let cnt = 0, fail = 0, made = 0;
+    for (const it of todo) {
+      const tg = imgTarget(it); if (tg.type === "skip") { it.images.forEach(n => done.add(n)); continue; }
+      const ids = [];
+      for (const name of it.images) {
+        if (done.has(name) || !z[name]) { cnt++; continue; }
+        try { const b = await zipEntry(z[name]); ids.push([name, await Store.upload(new File([b], name, { type: "image/jpeg" }))]); done.add(name); }
+        catch (e) { fail++; }
+        cnt++; S.imgProg = `Bilder ${cnt} / ${total} …`; const lab = document.getElementById("imgzip-lab"); if (lab) lab.textContent = S.imgProg;
+      }
+      if (!ids.length) continue;
+      const imgs = ids.map(([n, id]) => `<img data-shot="${esc(id)}" alt="${esc(n)}"><br>`).join("");
+      const block = `<hr><p><b>Seitenbilder aus PDF</b></p>${imgs}`;
+      if (tg.type === "trade") { const t = getTrade(tg.id); if (t) await patchTrade(t.id, { shots: [...(t.shots || []), ...ids.map(x => x[1])] }); }
+      else if (tg.type === "note") { const n = S.notes.find(x => x.id === tg.id); if (n) await saveDoc("notes", n.id, { ...n, html: noteHTML(n) + block, updated: new Date().toISOString() }); }
+      else { const ex = S.notes.find(x => x.id === tg.note.id); const n = ex || tg.note; await saveDoc("notes", n.id, { ...n, html: (ex ? noteHTML(ex) : "<p><i>Seitenbilder aus PDF (Tradezella-Export).</i></p>") + block }); if (!ex) made++; }
+      await patchSettings({ imgDone: [...done] });
+    }
+    await patchSettings({ imgDone: [...done] });
+    toast(`${cnt - fail} Bilder eingespielt${made ? `, ${made} neue Notizen` : ""}${fail ? `, ${fail} fehlgeschlagen – Zip einfach nochmal einspielen` : ""}`);
+  } catch (e) { toast("Bilder-Import fehlgeschlagen: " + (e.message || e)); }
+  S.busy = null; S.imgProg = ""; render();
+}
+
 async function restoreBackup(file) {
   S.busy = "restore"; render();
   try {
@@ -1838,7 +1933,7 @@ async function restoreBackup(file) {
     if (Array.isArray(d.reports)) { await saveMany("reports", d.reports.filter(r => r.id && r.title)); n += d.reports.length; }
     if (typeof d.strategy === "string" && d.strategy.trim()) { await saveMany("meta", [{ id: "strategy", text: d.strategy }]); n++; }
     for (const col of ["days", "weeks"]) if (d[col] && typeof d[col] === "object") { const l = Object.entries(d[col]).map(([id, v]) => ({ id, ...v })); await saveMany(col, l); n += l.length; }
-    toast(`${n} Einträge eingespielt`);
+    toast(`${n} Einträge eingespielt`); await loadData(true);
   } catch (e) { toast("Die Datei ist keine gültige Sicherung: " + e.message); }
   S.busy = null; render();
 }
