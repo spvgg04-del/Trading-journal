@@ -292,6 +292,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
 .nb-body p{margin:10px 0}.nb-body ul,.nb-body ol{margin:6px 0 10px}.nb-body li{margin:3px 0}
 
 /* ===== v1.5 Design ===== */
+.side{z-index:40}
 .sp{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px 22px;gap:12px;font-size:13.5px;margin:4px 0 14px}
 .sp.live{border:2px solid var(--accent)}
 .sp-row{gap:8px}.sp-row>b{min-width:150px;font-size:13px}
@@ -2279,7 +2280,7 @@ async function uploadShots(files) {
 
 
 /* ========= Bilder-Import (Zip mit bilder-zuordnung.json) – v1.1 ========= */
-const APP_VERSION = "1.5.0 · 18.11.26"; /* Design: Icon-Leiste, Notizbaum, volle Breite */
+const APP_VERSION = "1.5.1 · 18.11.26"; /* Design: Icon-Leiste, Notizbaum, volle Breite */
 async function readZip(file) {
   const buf = new Uint8Array(await file.arrayBuffer()); const dv = new DataView(buf.buffer);
   let e = buf.length - 22; while (e >= 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
