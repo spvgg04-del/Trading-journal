@@ -266,7 +266,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
 .sp-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.sp-row>b{min-width:118px;font-size:12px;color:var(--muted)}
 .sp-btn{border:1px solid var(--line);background:none;color:inherit;border-radius:7px;padding:4px 10px;font-size:12.5px;cursor:pointer}
 .sp-btn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
-.sp-rule{font-size:12.5px;padding:7px 10px;border-radius:8px;background:var(--surface2)}
+.sp-rule{font-size:12.5px;padding:7px 10px;border-radius:8px;background:var(--surface2)}.ampel{display:flex;flex-direction:column;align-items:center;gap:3px;padding:14px 16px;border-radius:10px;text-align:center}.ampel b{font-size:24px;letter-spacing:.05em;line-height:1.1}.ampel span{font-size:12.5px}.ampel.go{background:#15803d;color:#fff}.ampel.flat{background:#b91c1c;color:#fff}.ampel.wait{background:var(--surface2);color:var(--muted);border:1px dashed var(--line)}.ampel.wait b{font-size:17px}
 .ckbox{border-left:3px solid var(--accent);padding:6px 10px;border-radius:0;background:var(--surface2);font-size:13px}
 .ok{color:var(--pos,#22c55e)}.bad{color:var(--neg,#ef4444)}
 .dayshots{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}.dayshots img{width:100%;border-radius:6px;cursor:zoom-in;border:1px solid var(--line)}
@@ -1665,6 +1665,20 @@ function ruleEval(sp) {
   const complete = !!c && sp.m5close && sp.crv;
   return { ok: bad.length ? false : complete ? true : null, bad, good };
 }
+function stampAmpel(sp) {
+  const r = ruleEval({ ...sp, byCheck: null }), now = new Date().toTimeString().slice(0, 5);
+  if (r.ok === true) { if (!sp.goAt) sp.goAt = now; sp.flatAt = null; }
+  else if (r.ok === false) { sp.goAt = null; if (!sp.flatAt) sp.flatAt = now; }
+  else { sp.goAt = null; sp.flatAt = null; }
+  return sp;
+}
+function ampelHTML(sp, r0) {
+  const c = sp.check;
+  if (r0.ok === true) return `<div class="ampel go"><b>LIMIT RAUS</b><span>Freigegeben${sp.goAt ? " " + esc(sp.goAt) : ""} · ${esc(r0.good.join(" · "))} – jetzt ausführen, nicht weiter nachdenken.</span></div>`;
+  if (r0.ok === false) return `<div class="ampel flat"><b>FLAT</b><span>${esc(r0.bad.join(", "))}${sp.flatAt ? " · " + esc(sp.flatAt) : ""} – keine Order, kein später Entry.</span></div>`;
+  const miss = [!c && "Checkliste einfügen (⌘V)", !sp.m5close && "M5-Close", !sp.crv && "CRV"].filter(Boolean);
+  return `<div class="ampel wait"><b>Noch keine Freigabe</b><span>Fehlt: ${esc(miss.join(" · "))}. Kein Grün = keine Order.</span></div>`;
+}
 function newsTodayHTML(d) {
   const ev = (S.news || []).filter(e => e.t && e.t.slice(0, 10) === d && (e.impact === "High" || e.impact === "Medium"));
   if (!ev.length) return newsCovered(d) ? `<p>Keine wichtigen GBP/JPY-News und keine roten USD-News heute (Forex Factory).</p>` : `<p><b>News konnten nicht automatisch geladen werden</b> – bitte kurz im Kalender prüfen (Menü News oder Forex Factory).</p>`;
@@ -1691,7 +1705,7 @@ function sessionPanel(n) {
    <div class="sp-row"><b>M5-Trend</b>${spBtns(n, "m5", ["long", "short", "range"], sp.m5)}</div>
    <div class="sp-row"><b>Prime-Checkliste</b>${c ? `<span class="pill">${esc([c.strategie, c.setup, c.zone].filter(Boolean).join(" · "))}</span> <span class="pill ${["A", "B"].includes(c.grade) ? "acc" : ""}">Note ${esc(c.grade || "?")}${c.pct != null ? " (" + c.pct + " %)" : ""}</span> <span class="faint">Kerze: ${esc(c.kerze || "–")}</span>` : `<span class="faint">Text der Community-Checkliste in die Notiz einfügen (⌘V) – wird automatisch erkannt.</span>`}</div>
    <div class="sp-row"><b>M5-Close abgewartet</b>${spBtns(n, "m5close", ["ja", "nein"], sp.m5close)}<b style="min-width:auto;margin-left:10px">CRV ≥ 1:1,5</b>${spBtns(n, "crv", ["ja", "nein"], sp.crv)}</div>
-   <div class="sp-rule">${r0.ok === true ? `<b class="ok">Freigegeben</b> – alle Punkte erfüllt (${esc(r0.good.join(", "))}).` : r0.ok === false ? `<b class="bad">Flat</b> – ${esc(r0.bad.join(", "))}.` : `Regel: ${esc(RULE_LINE)}`}</div>
+   ${ampelHTML(sp, r0)}
    <div class="sp-row"><b>Trade genommen?</b>${spBtns(n, "taken", ["ja", "nein"], sp.taken)}</div>${sp.taken === "ja" ? `<div class="sp-row"><b>Nach Checkliste?</b>${spBtns(n, "byCheck", ["ja", "nein"], sp.byCheck)}</div>` : ""}`;
   if (sp.taken === "nein") {
     h += `<div class="sp-row"><b>Valider Trade da?</b>${spBtns(n, "valid", ["ja", "nein"], sp.valid)}</div>`;
@@ -1942,7 +1956,7 @@ const ACT = {
   monthStart() { const d = todayStr(); let y = +d.slice(0, 4), m = +d.slice(5, 7); if (+d.slice(8, 10) <= 7) { m--; if (!m) { m = 12; y--; } } const title = `${MON_DE[m - 1]} ${y}`, ds = `${y}-${String(m).padStart(2, "0")}-01`;
     const ex = S.notes.find(n => n.folder === "Monatsrückblick" && String(n.title || "").trim() === title); if (ex) { S.noteOpen = ex.id; S.noteFolder = "Monatsrückblick"; render(); return; }
     const id = "n" + rid(); saveDoc("notes", id, { title, folder: "Monatsrückblick", date: ds, period: "month", html: TEMPLATES.monat.html(), created: new Date().toISOString(), updated: new Date().toISOString() }); S.noteOpen = id; S.noteFolder = "Monatsrückblick"; render(); },
-  spSet(a) { saveNoteBody(); const n = S.notes.find(x => x.id === a.dataset.id); if (!n) return; const sp = { ...(n.sp || {}) }; const k = a.dataset.k, v = a.dataset.v; sp[k] = sp[k] === v ? null : v; if (k === "taken" && sp.taken !== "nein") { sp.valid = null; sp.why = null; } if (k === "taken" && sp.taken !== "ja") sp.byCheck = null; if (k === "valid" && sp.valid !== "ja") sp.why = null; saveDoc("notes", n.id, { ...S.notes.find(x => x.id === n.id), sp, updated: new Date().toISOString() }); render(); },
+  spSet(a) { saveNoteBody(); const n = S.notes.find(x => x.id === a.dataset.id); if (!n) return; const sp = { ...(n.sp || {}) }; const k = a.dataset.k, v = a.dataset.v; sp[k] = sp[k] === v ? null : v; if (k === "taken" && sp.taken !== "nein") { sp.valid = null; sp.why = null; } if (k === "taken" && sp.taken !== "ja") sp.byCheck = null; if (k === "valid" && sp.valid !== "ja") sp.why = null; if (["m5close", "crv"].includes(k)) stampAmpel(sp); saveDoc("notes", n.id, { ...S.notes.find(x => x.id === n.id), sp, updated: new Date().toISOString() }); render(); },
   weekFill(a) { const n = S.notes.find(x => x.id === a.dataset.id); if (!n) return; const [f, t] = weekRange(n.date || todayStr()); saveNoteBody(); setTimeout(() => { noteInsert(weekSummaryHTML(f, t)); toast("Zahlen und Learnings eingefügt"); }, 30); },
   async weekCopy(a) { const n = S.notes.find(x => x.id === a.dataset.id); if (!n) return; const [f, t] = weekRange(n.date || todayStr()); try { await navigator.clipboard.writeText(weekClaudeText(f, t)); toast("Kopiert – jetzt im Chat mit Claude einfügen (⌘V)"); } catch (e) { toast("Kopieren nicht möglich: " + (e.message || e)); } },
   nbView(a) { const v = a.dataset.v; let c = S.nbView || ""; c = c.includes(v) ? c.replace(v, "") : c + v; S.nbView = c; lsSet("pj-nbview", c); render(); },
@@ -2159,7 +2173,7 @@ document.addEventListener("paste", e => {
       noteInsert(`<blockquote><b>Prime-Checkliste${ck.time ? " " + esc(ck.time) : ""}</b><br>${plain.split(/\r?\n/).slice(1).filter(l => l.trim()).map(l => esc(l.trim())).join("<br>")}</blockquote><p></p>`);
       for (const it of document.querySelectorAll("#ne-body i")) if (/mit ⌘V hier einfügen/.test(it.textContent) && !it.querySelector("blockquote,img")) { const pp = it.parentNode; it.remove(); if (pp && pp.tagName === "P" && pp.parentNode && pp.parentNode.id === "ne-body" && !pp.textContent.replace(/\u00a0/g, "").trim()) pp.remove(); }
       saveNoteBody();
-      setTimeout(() => { const n = S.notes.find(x => x.id === id); if (n) { saveDoc("notes", n.id, { ...n, kind: n.kind || "session", sp: { ...(n.sp || {}), check: ck }, updated: new Date().toISOString() }); render(); toast(`Checkliste erkannt: Note ${ck.grade || "?"}`); } }, 1000);
+      setTimeout(() => { const n = S.notes.find(x => x.id === id); if (n) { saveDoc("notes", n.id, { ...n, kind: n.kind || "session", sp: stampAmpel({ ...(n.sp || {}), check: ck }), updated: new Date().toISOString() }); render(); toast(`Checkliste erkannt: Note ${ck.grade || "?"}`); } }, 1000);
       return;
     }
     const html = e.clipboardData?.getData("text/html");
@@ -2189,7 +2203,7 @@ async function uploadShots(files) {
 
 
 /* ========= Bilder-Import (Zip mit bilder-zuordnung.json) – v1.1 ========= */
-const APP_VERSION = "1.4.0 · 18.11.26"; /* Design: Icon-Leiste, Notizbaum, volle Breite */
+const APP_VERSION = "1.4.1 · 18.11.26"; /* Design: Icon-Leiste, Notizbaum, volle Breite */
 async function readZip(file) {
   const buf = new Uint8Array(await file.arrayBuffer()); const dv = new DataView(buf.buffer);
   let e = buf.length - 22; while (e >= 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
