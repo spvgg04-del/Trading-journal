@@ -286,7 +286,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
 .kpi-click{cursor:pointer}.kpi-click:hover{border-color:var(--accent)}
 .lab2{font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:6px}.dpr{border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.5;}.linkbtn{background:none;border:0;padding:0;color:var(--accent);cursor:pointer;font:inherit}
 .val.warn{color:var(--warn)}
-.pj-cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:10px 0}.pj-col{min-width:0}.pj-col img{width:100%;height:auto}#ne-body .pj-col{border:1px dashed var(--line);border-radius:8px;padding:6px;min-height:60px}@media (max-width:760px){.pj-cols{grid-template-columns:1fr}}.pj-cols{align-items:start}.pj-cap{font-size:12.5px;color:var(--muted);font-style:italic;margin:4px 0 10px!important}#ne-body .pj-cap:has(>br:only-child)::before{content:"Beschreibung …";opacity:.55;pointer-events:none}img[data-shot^="up-"]{display:block;width:100%;min-height:90px;background:var(--surface2);border:1px dashed var(--line);border-radius:8px}
+.pj-cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:10px 0}.pj-col{min-width:0}.pj-col img{width:100%;height:auto}#ne-body .pj-col{border:1px dashed var(--line);border-radius:8px;padding:6px;min-height:60px}@media (max-width:760px){.pj-cols{grid-template-columns:1fr}}.pj-cols{align-items:start}.pj-cap{font-size:12.5px;color:var(--muted);font-style:italic;margin:4px 0 10px!important}#ne-body .pj-cap:has(>br:only-child)::before{content:"Beschreibung …";opacity:.55;pointer-events:none}#ne-body img[data-shot]{cursor:grab}img[data-shot^="up-"]{display:block;width:100%;min-height:90px;background:var(--surface2);border:1px dashed var(--line);border-radius:8px}
 .kpi .val{white-space:nowrap}
 .nb-tree>*,.nb-tree .nb-tn,.nb-tree .nb-f{flex-shrink:0}
 .nb-body p{margin:10px 0}.nb-body ul,.nb-body ol{margin:6px 0 10px}.nb-body li{margin:3px 0}
@@ -1640,7 +1640,7 @@ function statsTableHTML(from, to) {
 
 
 /* ========= Session-Cockpit (v1.2) ========= */
-const RULE_LINE = "A/B + gesunde Kerze + M5-Close + CRV ≥ 1:1,5 → Limit raus. Fehlt eins → flat. TP bleibt stehen.";
+const RULE_LINE = "A/B laut Checkliste + M5-Close + CRV ≥ 1:1,5 → Limit raus. Fehlt eins → flat, kein später Entry. TP bleibt stehen.";
 const WHY_NOT = ["Angst (SL/Verlust)", "Zu viel gedacht", "Mehr Bestätigung gewollt", "Auf Pullback/Retest gewartet", "Auf andere verlassen (Live/Discord)", "Technik/Zeit", "Anderes"];
 const WHY_OLD = { "Angst": "Angst (SL/Verlust)", "Trigger nicht vertraut": "Mehr Bestätigung gewollt" };
 const whyOf = sp => WHY_OLD[sp.why] || sp.why;
@@ -1657,7 +1657,7 @@ function ruleEval(sp) {
   sp = sp || {}; const c = sp.check, bad = [], good = [];
   if (c) {
     if (["A", "B"].includes(c.grade)) good.push("Note " + c.grade); else bad.push("Note " + (c.grade || "?") + " (nur A/B)");
-    if (/ungesund/i.test(c.kerze || "")) bad.push("Kerze ungesund"); else if (c.kerze) good.push("Kerze " + c.kerze);
+    
   }
   if (sp.m5close === "nein") bad.push("kein M5-Close"); else if (sp.m5close === "ja") good.push("M5-Close");
   if (sp.crv === "nein") bad.push("CRV < 1:1,5"); else if (sp.crv === "ja") good.push("CRV ≥ 1:1,5");
@@ -1672,7 +1672,7 @@ function newsTodayHTML(d) {
 }
 function sessionTemplate(sess, d) {
   const wr = (S.settings.weekRule || "").trim();
-  return `<p><b>Regel:</b> ${esc(RULE_LINE)}</p>${wr ? `<p><b>Wochenregel:</b> ${esc(wr)}</p>` : ""}<h2>News heute</h2>${newsTodayHTML(d)}<h2>Analyse</h2><p><b>Analysebild:</b></p><p><b>Long wenn:</b> </p><p><b>Short wenn:</b> </p><p><b>Range:</b> </p><h2>Trade</h2><p><b>Checkliste:</b> <i>Text der Prime-Checkliste mit ⌘V hier einfügen</i></p><p><b>Bestätigung ist valide, weil:</b> </p><div class="pj-cols"><div class="pj-col"><p><b>Entrybild:</b></p><p><br></p></div><div class="pj-col"><p><b>Exitbild:</b></p><p><br></p></div></div><h2>Learning</h2><p><b>Ein Satz:</b> </p>`;
+  return `<p><b>Regel:</b> ${esc(RULE_LINE)}</p>${wr ? `<p><b>Wochenregel:</b> ${esc(wr)}</p>` : ""}<h2>News heute</h2>${newsTodayHTML(d)}<h2>Analyse</h2><div class="pj-cols"><div class="pj-col"><p><b>Meine Analyse</b></p><p><br></p></div><div class="pj-col"><p><b>Analyse Discord</b></p><p><br></p></div></div><p><b>Long wenn:</b>&nbsp;</p><p><b>Short wenn:</b>&nbsp;</p><p><b>Range:</b>&nbsp;</p><h2>Szenarien während der Session</h2><div class="pj-cols"><div class="pj-col"><p><b>Szenario 1</b></p><p><br></p></div><div class="pj-col"><p><b>Szenario 2</b></p><p><br></p></div></div><div class="pj-cols"><div class="pj-col"><p><b>Szenario 3</b></p><p><br></p></div><div class="pj-col"><p><b>Szenario 4</b></p><p><br></p></div></div><h2>Trade</h2><p><b>Checkliste:</b>&nbsp;<i>(Prime-Checkliste mit ⌘V hier einfügen)</i></p><p><b>Bestätigung ist valide, weil:</b>&nbsp;</p><div class="pj-cols"><div class="pj-col"><p><b>Entry</b></p><p><br></p></div><div class="pj-col"><p><b>Exit</b></p><p><br></p></div></div><h2>Learning</h2><p><b>Ein Satz:</b>&nbsp;</p>`;
 }
 function startSession(sess) {
   const d = todayStr(), [y, m, dd] = d.split("-"), title = `${dd}.${m}.${y.slice(2)} ${sess}`;
@@ -1847,7 +1847,7 @@ function noteEditor(n, folders) {
     <span class="sep2"></span>
     <label class="btn sm" title="Bild einfügen">${ico("img", 14)} Bild<input type="file" accept="image/*" id="ne-img" data-ch="noteImg" hidden multiple></label>
     <button class="btn sm" data-act="noteStats" title="Kennzahlen des Zeitraums einfügen">Kennzahlen einfügen</button>
-    <span class="faint" style="font-size:11.5px;margin-left:auto">${S.busy === "noteimg" ? "Bild wird hochgeladen …" : "Bilder mit ⌘V einfügen"}</span>
+    <span class="faint" style="font-size:11.5px;margin-left:auto">${S.busy === "noteimg" ? "Bild wird hochgeladen …" : "Bilder: ⌘V oder reinziehen · zum Verschieben ziehen"}</span>
    </div>
    <div class="nb-body md" id="ne-body" contenteditable="true" data-note="${esc(n.id)}" spellcheck="true">${noteHTML(n)}</div>
    <div class="tools" style="justify-content:space-between;margin-top:10px"><span class="faint" style="font-size:11.5px">${n.source ? "Quelle: " + esc(n.source) + " · " : ""}Wird automatisch gespeichert</span>${del ? `<span><button class="btn sm" data-act="cancelDel">Abbrechen</button> <button class="btn sm danger solid" data-act="noteDel">Löschen</button></span>` : `<button class="btn sm danger" data-act="noteAskDel">Notiz löschen</button>`}</div>`;
@@ -2113,13 +2113,42 @@ async function noteImages(files) {
     if (ph) { if (id) { ph.dataset.shot = id; ph.alt = "Bild"; hydrateShots(); } else { const c = ph.nextElementSibling; if (c && c.classList.contains("pj-cap") && !c.textContent.trim()) c.remove(); ph.remove(); } saveNoteBody(); }
     else { const n = S.notes.find(x => x.id === noteId); if (n && n.html) saveLater("notes", n.id, { ...n, html: id ? n.html.replace(`data-shot="${tmp[k]}"`, `data-shot="${id}"`) : n.html.replace(new RegExp(`<img[^>]*data-shot="${tmp[k]}"[^>]*>`), ""), updated: new Date().toISOString() }, 300); }
   }
-  S.busy = null; if (lab) lab.textContent = "Bilder mit ⌘V einfügen";
+  S.busy = null; if (lab) lab.textContent = "Bilder: ⌘V oder reinziehen · zum Verschieben ziehen";
 }
 document.addEventListener("input", e => { if (e.target.id === "ne-body") saveNoteBody(); });
 document.addEventListener("mousedown", e => { const b2 = e.target.closest("[data-cmd2]"); if (b2) { e.preventDefault(); const ed = $("#ne-body"); if (!ed) return; if (document.activeElement !== ed) { ed.focus(); if (noteRange) { const sl = document.getSelection(); sl.removeAllRanges(); sl.addRange(noteRange); } } try { document.execCommand("styleWithCSS", false, true); } catch (x) { } document.execCommand(b2.dataset.cmd2, false, b2.dataset.v || null); saveNoteBody(); return; } });
 document.addEventListener("mousedown", e => { const b = e.target.closest("[data-cmd]"); if (!b) return; e.preventDefault(); const ed = $("#ne-body"); if (!ed) return; if (document.activeElement !== ed) { ed.focus(); if (noteRange) { const s = document.getSelection(); s.removeAllRanges(); s.addRange(noteRange); } } document.execCommand(b.dataset.cmd, false, b.dataset.v ? "<" + b.dataset.v + ">" : null); saveNoteBody(); });
 document.addEventListener("click", e => { const i = e.target.closest && e.target.closest("#ne-body img[data-shot], .md img[data-shot], .dayshots img[data-shot]"); if (i) { e.preventDefault(); S.lightbox = i.dataset.shot; S.lbZoom = false; render(); } });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && S.lightbox) { S.lightbox = null; S.lbZoom = false; render(); } });
+/* Bilder im Editor per Ziehen verschieben / aus dem Finder reinziehen – v1.3.8 */
+let dragImg = null;
+function caretAt(x, y) { if (document.caretRangeFromPoint) return document.caretRangeFromPoint(x, y); const p = document.caretPositionFromPoint && document.caretPositionFromPoint(x, y); if (!p) return null; const r = document.createRange(); r.setStart(p.offsetNode, p.offset); r.collapse(true); return r; }
+const isCol = el => el && el.classList && el.classList.contains("pj-col");
+function imgUnit(img) { const p = img.parentNode; let u = (p && p.tagName === "P" && !p.textContent.trim() && p.querySelectorAll("img").length === 1) ? p : img; const c = u.nextElementSibling; return c && c.classList.contains("pj-cap") ? [u, c] : [u]; }
+document.addEventListener("dragstart", e => { const i = e.target.closest && e.target.closest("#ne-body img[data-shot]"); if (!i) return; dragImg = i; e.dataTransfer.effectAllowed = "move"; try { e.dataTransfer.setData("text/plain", " "); } catch (x) { } setTimeout(() => { if (dragImg) dragImg.style.opacity = ".35"; }, 0); });
+document.addEventListener("dragend", () => { if (dragImg) dragImg.style.opacity = ""; dragImg = null; });
+document.addEventListener("dragover", e => { if (!(e.target.closest && e.target.closest("#ne-body"))) return; const files = [...(e.dataTransfer?.types || [])].includes("Files"); if (dragImg || files) { e.preventDefault(); e.dataTransfer.dropEffect = dragImg ? "move" : "copy"; } });
+document.addEventListener("drop", e => {
+  const b = e.target.closest && e.target.closest("#ne-body"); if (!b) return;
+  if (!dragImg) {
+    const files = [...(e.dataTransfer?.files || [])].filter(f => f.type.startsWith("image/")); if (!files.length) return;
+    e.preventDefault(); const r = caretAt(e.clientX, e.clientY); if (r && b.contains(r.startContainer)) noteRange = r; noteImages(files); return;
+  }
+  e.preventDefault(); const img = dragImg; img.style.opacity = ""; dragImg = null;
+  const unit = imgUnit(img), src = unit[0].parentNode;
+  let t = e.target.nodeType === 1 ? e.target : e.target.parentNode;
+  if (isCol(t) || t === b) { const r = caretAt(e.clientX, e.clientY); let n = r && r.startContainer; if (n && n.nodeType === 3) n = n.parentNode; if (n && t.contains(n) && n !== t) t = n; }
+  if (isCol(t) && !t.children.length) { t.append(...unit); }
+  else {
+    while (t && t !== b && t.parentNode !== b && !isCol(t.parentNode)) t = t.parentNode;
+    if (!t || t === b) { const kids = [...b.children]; t = kids.find(k => k.getBoundingClientRect().bottom > e.clientY) || kids[kids.length - 1]; if (!t) return; }
+    if (unit.some(u => u === t || u.contains(t))) return;
+    const rc = t.getBoundingClientRect(); const before = e.clientY < rc.top + rc.height / 2;
+    if (isCol(t)) t.append(...unit); else if (before) t.before(...unit); else t.after(...unit);
+  }
+  if (isCol(src) && !src.querySelector("img") && !src.textContent.trim() && !src.children.length) src.innerHTML = "<p><br></p>";
+  saveNoteBody();
+});
 document.addEventListener("paste", e => {
   if (e.target.closest && e.target.closest("#ne-body")) {
     const files = [...(e.clipboardData?.files || [])].filter(f => f.type.startsWith("image/"));
@@ -2128,6 +2157,8 @@ document.addEventListener("paste", e => {
     if (ck) {
       e.preventDefault(); const body = $("#ne-body"), id = body && body.dataset.note;
       noteInsert(`<blockquote><b>Prime-Checkliste${ck.time ? " " + esc(ck.time) : ""}</b><br>${plain.split(/\r?\n/).slice(1).filter(l => l.trim()).map(l => esc(l.trim())).join("<br>")}</blockquote><p></p>`);
+      for (const it of document.querySelectorAll("#ne-body i")) if (/mit ⌘V hier einfügen/.test(it.textContent) && !it.querySelector("blockquote,img")) { const pp = it.parentNode; it.remove(); if (pp && pp.tagName === "P" && pp.parentNode && pp.parentNode.id === "ne-body" && !pp.textContent.replace(/\u00a0/g, "").trim()) pp.remove(); }
+      saveNoteBody();
       setTimeout(() => { const n = S.notes.find(x => x.id === id); if (n) { saveDoc("notes", n.id, { ...n, kind: n.kind || "session", sp: { ...(n.sp || {}), check: ck }, updated: new Date().toISOString() }); render(); toast(`Checkliste erkannt: Note ${ck.grade || "?"}`); } }, 1000);
       return;
     }
@@ -2158,7 +2189,7 @@ async function uploadShots(files) {
 
 
 /* ========= Bilder-Import (Zip mit bilder-zuordnung.json) – v1.1 ========= */
-const APP_VERSION = "1.3.7 · 18.11.26"; /* Design: Icon-Leiste, Notizbaum, volle Breite */
+const APP_VERSION = "1.4.0 · 18.11.26"; /* Design: Icon-Leiste, Notizbaum, volle Breite */
 async function readZip(file) {
   const buf = new Uint8Array(await file.arrayBuffer()); const dv = new DataView(buf.buffer);
   let e = buf.length - 22; while (e >= 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
