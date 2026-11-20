@@ -1083,11 +1083,11 @@ function viewKalender() {
 
 /* ========= Journal (Tagebuch) ========= */
 const taRows = t => Math.min(28, Math.max(4, Math.ceil(String(t || "").length / 90) + (String(t || "").match(/\n/g) || []).length));
-const PLAN_KEYS = ["Szenario der Session", "Heute interessant", "Long", "Long wenn", "Short", "Short wenn", "Range"];
+const PLAN_KEYS = ["Szenario der Session", "Heute interessant", "Long", "Long wenn", "Short", "Short wenn", "Range", "Mein Fokus heute"];
 const REV_KEYS = ["Entry-Grund", "Bestätigung ist valide, weil", "Hauptfehler", "Was war gut", "Learning", "Ein Satz", "nächstes Mal"];
 const OPT_JUNK = /^(short|long|range|ja|nein|trendfortsetzung|trendwechsel|nur|reaktion|an|zone|rangeflow|\s)+$/i;
 function noteFields(n) {
-  const out = {}; const h = noteHTML(n).replace(/<img[^>]*>/g, "");
+  const out = {}; const h = ((n.pre ? sanitizeHTML(n.pre) : "") + noteHTML(n)).replace(/<img[^>]*>/g, "");
   for (const m of h.matchAll(/<p[^>]*>\s*<(?:b|strong)>([^<]*)<\/(?:b|strong)>([\s\S]*?)<\/p>/g)) {
     const k = m[1].replace(/[:\s]+$/, "").trim(), v = m[2].replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
     if (v && !OPT_JUNK.test(v) && !/^<i>|Text der Prime-Checkliste/.test(v) && !out[k]) out[k] = v;
@@ -1131,7 +1131,7 @@ function viewTagebuch() {
     return h + dayCard(S.journalDay);
   }
   const b = rangeBounds();
-  const dates = [...new Set([...S.trades.map(t => t.date), ...Object.keys(S.days).filter(k => S.days[k].plan || S.days[k].review || S.days[k].mood)])].filter(d => inRange(d, b)).sort().reverse();
+  const dates = [...new Set([...S.trades.map(t => t.date), ...Object.keys(S.days).filter(k => S.days[k].plan || S.days[k].review || S.days[k].mood), ...allNotes().filter(n => n.date && (n.folder || "") === "Tageszusammenfassungen").map(n => n.date)])].filter(d => inRange(d, b)).sort().reverse();
   const jseg = `<div class="seg" role="group" aria-label="Ansicht"><button data-act="jmode" data-v="days" aria-pressed="${S.jmode === "days"}">Tage</button><button data-act="jmode" data-v="weeks" aria-pressed="${S.jmode === "weeks"}">Wochen</button></div>`;
   if (S.jmode === "weeks") return viewWeeks(jseg);
   h = topbar("Tagebuch", `${dates.length} Tage`, jseg + rangeControl() + `<button class="btn primary" data-act="today">${ico("plus", 15)} Heute notieren</button>`) + banners();
@@ -2280,7 +2280,7 @@ async function uploadShots(files) {
 
 
 /* ========= Bilder-Import (Zip mit bilder-zuordnung.json) – v1.1 ========= */
-const APP_VERSION = "1.5.1 · 18.11.26"; /* Design: Icon-Leiste, Notizbaum, volle Breite */
+const APP_VERSION = "1.5.2 · 20.11.26"; /* Design: Icon-Leiste, Notizbaum, volle Breite */
 async function readZip(file) {
   const buf = new Uint8Array(await file.arrayBuffer()); const dv = new DataView(buf.buffer);
   let e = buf.length - 22; while (e >= 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
