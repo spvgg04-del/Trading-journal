@@ -328,6 +328,65 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
 .kpi-goal{border:2px solid var(--accent)}
 .cal .cell.missed{border-color:var(--warn);box-shadow:inset 0 0 0 1px var(--warn)}
 .cal .cell .mv{font-size:10.5px;font-weight:700;color:var(--warn)}
+/* ===== v1.6.2 Premium-Feinschliff ===== */
+:root{--shadow:0 1px 2px rgba(16,24,40,.04),0 8px 24px -10px rgba(16,24,40,.12)}
+:root[data-theme="dark"]{--shadow:0 1px 2px rgba(0,0,0,.3),0 10px 28px -12px rgba(0,0,0,.55)}
+body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+.card{border-color:transparent;border-radius:18px;box-shadow:var(--shadow)}
+.grid{gap:18px}
+.num,.val,.kpi .val,.tbl td,.statlist dd{font-variant-numeric:tabular-nums}
+/* Kalender: Flächen statt Rahmen */
+.cal .cell{border-color:transparent!important;background:var(--surface2);border-radius:10px;transition:transform .12s ease,background-color .12s ease}
+.cal .cell.out{background:transparent;opacity:.45}
+.cal .cell.missed{background:rgba(217,119,6,.15)!important;box-shadow:inset 0 0 0 1.5px rgba(217,119,6,.35)}
+.cal .cell.win{background:var(--pos-soft)!important}.cal .cell.loss{background:var(--neg-soft)!important}
+.cal .cell:hover{transform:translateY(-1px)}
+.cal .wk{border-color:transparent!important;background:transparent!important}
+.tbl td,.tbl th{border-color:color-mix(in srgb,var(--line) 55%,transparent)}
+/* Notiz-Kopf */
+.nb-title2{font-size:30px;letter-spacing:-.02em;font-weight:800}
+.nb-meta .inp,.nb-meta .btn{border-color:transparent;background:transparent;color:var(--muted);box-shadow:none;transition:border-color .15s,background-color .15s}
+.nb-meta .inp:hover,.nb-meta .inp:focus,.nb-meta .btn:hover{border-color:var(--line);background:var(--surface)}
+.pj-step i{box-shadow:0 0 0 5px color-mix(in srgb,var(--accent) 14%,transparent)}
+.pj-step span{letter-spacing:.12em}
+/* Cockpit */
+.sp{border-radius:16px;padding:20px 22px;box-shadow:var(--shadow)}
+.sp-row{gap:12px 14px;flex-wrap:wrap}
+.sp-row>b{min-width:160px;font-weight:600;color:var(--muted)}
+.seg{display:inline-flex;flex-wrap:wrap;gap:2px;padding:3px;background:var(--surface2);border-radius:11px;max-width:100%}
+.seg .sp-btn{border:0;background:transparent;color:var(--fg);padding:7px 15px;border-radius:8px;font-weight:600;box-shadow:none;transition:background-color .18s ease,color .18s ease,box-shadow .18s ease,transform .08s ease}
+.seg .sp-btn:hover{background:color-mix(in srgb,var(--surface) 70%,transparent)}
+.seg .sp-btn[aria-pressed="true"]{background:var(--accent);color:var(--on-accent,#fff);box-shadow:0 1px 2px rgba(0,0,0,.15),0 4px 12px -4px color-mix(in srgb,var(--accent) 65%,transparent)}
+.sp-row .pill{font-size:13px;padding:5px 11px;border-radius:999px;font-weight:600}
+.sp-row .pill.acc{font-size:15px;font-weight:800;padding:6px 14px;background:color-mix(in srgb,var(--accent) 13%,transparent);color:color-mix(in srgb,var(--accent) 75%,var(--fg));box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--accent) 35%,transparent)}
+.ampel{border-radius:16px;padding:22px 26px}
+.ampel.go{background:linear-gradient(135deg,#13a07f 0%,#0b6a4f 100%);box-shadow:0 14px 34px -14px rgba(16,150,110,.75)}
+.ampel.flat{background:linear-gradient(135deg,#d23b3b 0%,#9b1c1c 100%);box-shadow:0 14px 34px -14px rgba(200,40,40,.6)}
+.ampel b{font-size:30px;font-weight:800;letter-spacing:.01em}
+.ampel em{border-radius:10px;background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.35)}
+/* Flüssig */
+.btn,.sp-btn,.nb-tn,.nav a{transition:background-color .15s ease,color .15s ease,box-shadow .15s ease,transform .08s ease}
+.btn:active,.sp-btn:active{transform:scale(.97)}
+.pj-enter{animation:pjfade .22s ease-out}
+@keyframes pjfade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.pj-enter{animation:none}.btn:active,.sp-btn:active{transform:none}}
+/* Linke Leiste: weich ein-/ausklappen, in den Notizen beim Drüberfahren ausfahren */
+@media (min-width:861px){
+ .shell{transition:grid-template-columns .22s ease}
+ .shell .side{transition:width .2s ease .12s,box-shadow .2s ease}
+ .shell.rail{overflow:visible}
+ .shell.rail .side{z-index:45;width:62px;overflow:hidden}
+}
+@media (min-width:861px) and (hover:hover){
+ .shell.rail .side:hover{width:224px;box-shadow:12px 0 32px -12px rgba(0,0,0,.35)}
+ .shell.rail .side:hover .brand span,.shell.rail .side:hover .nav a span,.shell.rail .side:hover .side-foot span{display:inline}
+ .shell.rail .side:hover .brand,.shell.rail .side:hover .nav a{justify-content:flex-start}
+ .shell.rail .side:hover .nav a{padding:10px 12px}
+ .shell.rail .side:hover .side-foot{align-items:stretch}
+ .shell.rail .side:hover .nav a::after,.shell.rail .side:hover .side-foot [data-navtip]::after{display:none!important}
+ .shell.rail .nav a span,.shell.rail .side-foot span{white-space:nowrap}
+}
+@media (max-width:760px){.sp{padding:16px}.sp-row>b{flex-basis:100%;min-width:100%!important;margin-left:0!important;margin-bottom:-4px}.seg .sp-btn{padding:8px 12px}.ampel b{font-size:24px}}
 </style>
 </head>
 <body>
@@ -1678,7 +1737,7 @@ const TEMPLATES = {
   tages: { name: "Tageszusammenfassung", folder: "Tageszusammenfassungen", period: "day", html: () => `<h2>Sessionplan</h2><p><b>Session:</b> London</p><p><b>Max. Risiko:</b> ${esc(fmtMoney(10, { dec: 0 }))} · <b>Max. Trades:</b> ${esc(S.settings.maxTrades || 1)} pro Session · <b>Discord:</b> aus</p><h2>Marktbild</h2><p><b>Übergeordnete Struktur (H1/H4):</b> </p><p><b>M5-Trend:</b> </p><p><b>Heute interessant:</b> Trendfortsetzung / Trendwechsel / Reaktion an Zone / RangeFlow</p><h3>Szenario der Session</h3><ul><li><b>Long:</b> </li><li><b>Short:</b> </li><li><b>Range:</b> </li></ul><p><b>Analysebild:</b></p><h2>Live-Checkliste</h2><ul><li>Zone klar?</li><li>Richtung klar?</li><li>Bestätigung klar? „Bestätigung ist valide, weil …“</li><li>M5-Kerze geschlossen?</li></ul><p>4× Ja = Trade. Ein Nein oder unklar = flat.</p><p><b>Entrybild:</b></p><h2>Session Review</h2><p><b>Trade genommen:</b> ja / nein</p><p><b>Entry-Grund:</b> </p><p><b>Hauptfehler:</b> </p><p><b>Was war gut:</b> </p><p><b>Wenn kein Trade – war ein valider Trade da? Warum nicht?</b> </p><p><b>Exitbild:</b></p><h2>Tageslearning</h2><p><b>Ein Satz:</b> </p><p><b>Nächstes Mal:</b> </p>` },
   analyse: { name: "Pre-Session-Analyse", folder: "Eigene Analyse", period: "day", html: () => `<h2>Analyse vor der Session</h2><p><b>Übergeordnete Struktur (H1/H4):</b> short / long / range</p><p><b>Potenzielle Handelszonen:</b> </p><p><b>M30/M15-Trend:</b> </p><p><b>M5-Trend:</b> </p><h3>Long-Szenario</h3><p>Ich warte auf … Ziel ist …</p><h3>Short-Szenario</h3><p>Ich warte auf … Ziel ist …</p><p><b>News heute:</b> </p><p><b>Bild der Analyse:</b></p>` },
   woche: { name: "Wochenrückblick", folder: "Wochenrückblick", period: "week", html: () => `<h2>Zahlen der Woche</h2><p><i>Mit „Kennzahlen einfügen“ automatisch füllen.</i></p><h2>Rückblick</h2>${(S.settings.weekQuestions || []).map(q => `<h3>${esc(q)}</h3><p></p>`).join("")}` },
-  monat: { name: "Monatsrückblick", folder: "Monatsrückblick", period: "month", html: () => `<h2>Der Monat in einem Satz</h2><p></p><h2>Zahlen</h2><p><i>Mit „Kennzahlen einfügen“ automatisch füllen.</i></p><h2>Was gut war</h2><ul><li></li></ul><h2>Was schlecht war</h2><ul><li></li></ul><h2>Wiederkehrende Fehler</h2><ul><li></li></ul><h2>Ein Fokus für den nächsten Monat</h2><p></p><h2>Leitsatz</h2><p></p>` },
+  monat: { name: "Monatsrückblick", folder: "Monatsrückblick", period: "month", html: () => `<p><b>☐ Sicherung:</b> Einstellungen → „Sicherung (JSON)“ herunterladen und in den Ordner „Prime Trading“ legen.</p><h2>Zahlen des Monats</h2><p><i>Mit „Zahlen &amp; Learnings einfügen“ automatisch füllen.</i></p><h2>Was lief gut</h2><ul><li></li></ul><h2>Muster</h2><ul><li></li></ul><h2>Ein Fokus für den nächsten Monat</h2><p></p><h2>Learning</h2><p><b>Ein Satz (1–2 Sätze):</b>&nbsp;</p><p><b>Gedanken:</b>&nbsp;</p>` },
   leer: { name: "Leere Notiz", folder: null, period: null, html: () => "<p></p>" }
 };
 function periodOf(n) {
@@ -1758,7 +1817,7 @@ function startSession(sess) {
   saveDoc("notes", id, { title, folder: "Tageszusammenfassungen", date: d, period: "day", kind: "session", session: sess, sp: { mode: "Solo" }, pre: sessionPre(d), html: sessionTemplate(sess, d), created: new Date().toISOString(), updated: new Date().toISOString() });
   S.noteOpen = id; S.noteFolder = "Tageszusammenfassungen"; render();
 }
-function spBtns(n, k, opts, cur) { return opts.map(o => `<button class="sp-btn" data-act="spSet" data-id="${esc(n.id)}" data-k="${k}" data-v="${esc(o)}" aria-pressed="${cur === o}">${esc(o)}</button>`).join(""); }
+function spBtns(n, k, opts, cur) { return `<span class="seg">` + opts.map(o => `<button class="sp-btn" data-act="spSet" data-id="${esc(n.id)}" data-k="${k}" data-v="${esc(o)}" aria-pressed="${cur === o}">${esc(o)}</button>`).join("") + `</span>`; }
 function sessionPanel(n, part) {
   const sp = n.sp || {}, c = sp.check, r = ruleEval(sp), r0 = ruleEval({ ...sp, byCheck: null });
   let h = `<div class="sp live">
@@ -1818,10 +1877,10 @@ function weekSummaryHTML(from, to) {
   return `<h2>Zahlen der Woche (${esc(fmtDate(from))} – ${esc(fmtDate(to))})</h2><table><tbody>
    <tr><td>Trades</td><td>${ts.length} (${ts.filter(t => t.net > 0).length} G / ${ts.filter(t => t.net < 0).length} V)</td></tr>
    <tr><td>Ergebnis R netto / brutto</td><td>${rN.length ? fmtNum(sum(rN), 2) + " R" : "–"} / ${rG.length ? fmtNum(sum(rG), 2) + " R" : "–"}</td></tr>
-   <tr><td>Execution Rate (Woche)</td><td>${pct(ex.rate)} – ${ex.takenValid} von ${ex.valid} validen Setups genommen</td></tr>
+   <tr><td>Execution Rate (Woche)</td><td>${pct(ex.rate)} – ${ex.takenValid} von ${ex.valid} validen Setups ausgeführt</td></tr>
    <tr><td>Verpasste valide Setups</td><td>${ex.missed} (Gründe: ${esc(whyTxt(ex))})</td></tr>
    <tr><td>Regelbrüche (genommen, obwohl nicht freigegeben)</td><td>${ex.broken}</td></tr>
-   <tr><td>Execution Rate seit 01.10.</td><td>${pct(exAll.rate)} (${exAll.takenValid}/${exAll.valid}), verpasst ${exAll.missed}, Regelbrüche ${exAll.broken}</td></tr>
+   <tr><td>Limit abgeschickt, nicht gefüllt</td><td>${ex.unfilled} (zählt als ausgeführt)</td></tr>
   </tbody></table>
   <h2>Learnings der Woche</h2>${lerns.length ? `<ul>${lerns.map(([t, l]) => `<li><b>${esc(t)}:</b> ${esc(l)}</li>`).join("")}</ul>` : "<p>Keine Learnings gefunden.</p>"}
   <h2>Wochenregel für nächste Woche</h2><p>${esc(S.settings.weekRule || "")}</p>`;
@@ -1852,6 +1911,67 @@ TRADES\n`;
   t += `\n\nEXECUTION\nDiese Woche: Execution Rate ${pct(ex)} (${ex.takenValid} von ${ex.valid} valide ausgeführt), verpasst ${ex.missed}${ex.missed ? " – Gründe: " + Object.entries(ex.why).map(([k, v]) => `${k} ${v}×`).join(", ") : ""}; Limit abgeschickt, aber nicht gefüllt (zählt als ausgeführt) ${ex.unfilled}; Regelbrüche ${ex.broken}; korrekt flat ${ex.flatOk}\nZum Vergleich seit 01.10. (heute berechnet): ${pct(exAll)} (${exAll.takenValid}/${exAll.valid}), verpasst ${exAll.missed}, Limit nicht gefüllt ${exAll.unfilled}, Regelbrüche ${exAll.broken}\n\nTAGESZUSAMMENFASSUNGEN\n`;
   t += days.map(n => `--- ${n.title}${n.sp ? ` [HTF ${n.sp.htf || "–"}, M5 ${n.sp.m5 || "–"}, Modus ${n.sp.mode || "Solo"}, genommen ${n.sp.taken || "–"}, valide ${n.sp.valid || "–"}, Grund ${n.sp.why ? whyOf(n.sp) + (n.sp.whyText ? ": " + n.sp.whyText : "") : "–"}, Note ${(n.sp.check || {}).grade || "–"}, Ampel ${n.sp.goAt ? "grün " + n.sp.goAt : n.sp.flatAt ? "rot " + n.sp.flatAt : "–"}]` : ""}\n${noteText(n).replace(/Seitenbilder aus PDF.*$/, "").slice(0, 3000)}`).join("\n\n");
   t += `\n\n=== ENDE DATEN – bitte jetzt in den 4 Punkten oben antworten ===`;
+  return t;
+}
+function monthPanel(n) {
+  return `<div class="sp"><div class="sp-row"><b>Auswertung</b><button class="btn sm" data-act="monthFill" data-id="${esc(n.id)}">Zahlen &amp; Learnings einfügen</button><button class="btn sm" data-act="monthCopy" data-id="${esc(n.id)}">Für Claude kopieren</button></div>
+   <div class="faint" style="font-size:12px">Vorher die Sicherung (JSON) unter Einstellungen herunterladen.</div></div>`;
+}
+function monthWeeks(from, to) { const out = []; let m = mondayOf(from); while (m <= to) { const e = parseD(m); e.setDate(e.getDate() + 6); const a = m < from ? from : m, b = dstr(e) > to ? to : dstr(e); out.push([isoWeek(m), a, b]); const nx = parseD(m); nx.setDate(nx.getDate() + 7); m = dstr(nx); } return out; }
+function monthSummaryHTML(from, to) {
+  const ts = S.trades.filter(t => t.date >= from && t.date <= to && !t.demo);
+  const rN = ts.map(Rof).filter(v => v != null), rG = ts.map(RgrossOf).filter(v => v != null);
+  const sum = a => a.reduce((x, y) => x + y, 0), pct = v => v == null ? "–" : Math.round(v * 100) + " %";
+  const ex = execStats(from, to), wins = ts.filter(t => t.net > 0).length;
+  const whyTxt = o => Object.entries(o.why).map(([k, v]) => `${k} ${v}×`).join(", ") || "–";
+  const weeks = monthWeeks(from, to).filter(([kw, a, b]) => execStats(a, b).sessions > 0).map(([kw, a, b]) => { const e = execStats(a, b); return `<tr><td>KW ${kw} (${esc(fmtDate(a))} – ${esc(fmtDate(b))})</td><td>${pct(e.rate)} (${e.takenValid}/${e.valid}), verpasst ${e.missed}, Regelbrüche ${e.broken}</td></tr>`; }).join("");
+  const wn = S.notes.filter(n => n.folder === "Wochenrückblick" && n.date >= mondayOf(from) && n.date <= to).sort((a, b) => String(a.date).localeCompare(b.date)).map(n => [n.title, learningOf(n)]).filter(x => x[1]);
+  return `<h2>Zahlen des Monats (${esc(fmtDate(from))} – ${esc(fmtDate(to))})</h2><table><tbody>
+   <tr><td>Execution Rate (Monat)</td><td><b>${pct(ex.rate)}</b> – ${ex.takenValid} von ${ex.valid} validen Setups ausgeführt · Ziel ≥ 80 %</td></tr>
+   <tr><td>Verpasste valide Setups</td><td>${ex.missed} (Gründe: ${esc(whyTxt(ex))})</td></tr>
+   <tr><td>Limit abgeschickt, nicht gefüllt</td><td>${ex.unfilled} (zählt als ausgeführt)</td></tr>
+   <tr><td>Regelbrüche</td><td>${ex.broken}</td></tr>
+   <tr><td>Trades</td><td>${ts.length} (${wins} G / ${ts.length - wins} V) · Trefferquote ${ts.length ? Math.round(wins / ts.length * 100) + " %" : "–"} · Ziel 60 %</td></tr>
+   <tr><td>Ergebnis R netto / brutto</td><td>${rN.length ? fmtNum(sum(rN), 2) + " R" : "–"} / ${rG.length ? fmtNum(sum(rG), 2) + " R" : "–"}</td></tr>
+  </tbody></table>
+  <h3>Execution pro Woche</h3><table><tbody>${weeks}</tbody></table>
+  <h3>Wochen-Learnings</h3>${wn.length ? `<ul>${wn.map(([t, l]) => `<li><b>${esc(t)}:</b> ${esc(l)}</li>`).join("")}</ul>` : "<p>Keine Wochen-Learnings gefunden.</p>"}<p></p>`;
+}
+function monthClaudeText(from, to) {
+  const ts = S.trades.filter(t => t.date >= from && t.date <= to && !t.demo).sort(byClose);
+  const ex = execStats(from, to), pct = o => o.rate == null ? "–" : Math.round(o.rate * 100) + " %";
+  const days = S.notes.filter(n => isSession(n) && n.sp && n.date >= from && n.date <= to).sort((a, b) => String(a.date + a.title).localeCompare(b.date + b.title));
+  const wnotes = S.notes.filter(n => n.folder === "Wochenrückblick" && n.date >= mondayOf(from) && n.date <= to).sort((a, b) => String(a.date).localeCompare(b.date));
+  let t = `Du bist mein Trading-Mentor. Antworte auf Deutsch, kurz, ehrlich.
+Ich: Martin, trade nur GBP/JPY als CFD bei Interactive Brokers, London-Session, max. 1 Trade pro Session, Risiko 10 € = 1 R.
+Meine Regel (bis zum Rückblick eingefroren – bitte KEINE Regeländerung vorschlagen): ${RULE_LINE}
+Ziele: 60 % Trefferquote und mindestens 80 % Execution Rate. Mein Hauptproblem ist die Ausführung (Zögern bei validen Setups oder zu früher Einstieg), nicht die Analyse.
+Begriffe: Execution Rate = valide Setups, bei denen ich bei grüner Ampel abgeschickt habe. „Limit nicht gefüllt“ = abgeschickt → zählt als ausgeführt. Entries vom Mentor/der Community sind nicht meine Regel.
+Bewerte Prozess vor Ergebnis. Nutze nur die Fakten unten, erfinde nichts.
+
+Das ist mein MONATSRÜCKBLICK. Antworte genau so:
+1. Was lief gut im Monat (zuerst, konkret)
+2. Entwicklung über die Wochen (besser/schlechter, woran sichtbar)
+3. Muster (höchstens 3)
+4. Genau 1 Fokus für den nächsten Monat (1 Satz)
+5. Ein kurzer Text „Monatsrückblick mit Claude“ (6–10 Zeilen), den ich ins Journal einfüge
+
+=== DATEN: Monat ${fmtDate(from)} – ${fmtDate(to)} ===
+
+EXECUTION MONAT: ${pct(ex)} (${ex.takenValid}/${ex.valid}), verpasst ${ex.missed}${ex.missed ? " – Gründe: " + Object.entries(ex.why).map(([k, v]) => `${k} ${v}×`).join(", ") : ""}; Limit nicht gefüllt ${ex.unfilled}; Regelbrüche ${ex.broken}; korrekt flat ${ex.flatOk}
+PRO WOCHE:
+${monthWeeks(from, to).filter(([kw, a, b]) => execStats(a, b).sessions > 0).map(([kw, a, b]) => { const e = execStats(a, b); return `KW ${kw}: ${pct(e)} (${e.takenValid}/${e.valid}), verpasst ${e.missed}, Regelbrüche ${e.broken}`; }).join("\n")}
+
+TRADES
+${ts.length ? ts.map(x => `${x.date} ${x.side} netto ${fmtNum(x.net, 2)} € = ${Rof(x) == null ? "–" : fmtNum(Rof(x), 2) + " R"}`).join("\n") : "keine"}
+
+SESSIONS (Cockpit)
+${days.map(n => `${n.title}: Modus ${n.sp.mode || "Solo"}, genommen ${n.sp.taken || "–"}, valide ${n.sp.valid || "–"}, Grund ${n.sp.why ? whyOf(n.sp) + (n.sp.whyText ? ": " + n.sp.whyText : "") : "–"}, Note ${(n.sp.check || {}).grade || "–"}, Ein Satz: ${learningOf(n) || "–"}`).join("\n") || "keine"}
+
+WOCHENRÜCKBLICKE
+${wnotes.map(n => `--- ${n.title}\n${noteText(n).slice(0, 2500)}`).join("\n\n") || "keine"}
+
+=== ENDE DATEN – bitte jetzt in den 5 Punkten oben antworten ===`;
   return t;
 }
 function weekPanel(n) {
@@ -1937,7 +2057,7 @@ function noteEditor(n, folders) {
      <select class="inp" id="ne-folder" data-ch="noteField" data-k="folder" style="width:auto">${folders.filter(f => f !== "KI-Berichte" || n.folder === "KI-Berichte").map(f => `<option ${f === (n.folder || "Sonstiges") ? "selected" : ""}>${esc(f)}</option>`).join("")}</select>
      ${n.date ? `<button class="btn sm" data-act="openDay" data-d="${esc(n.date)}">Zum Tag</button>` : ""}
     </div></div>
-   ${isSession(n) ? sessionTop(n) : n.period === "week" || n.folder === "Wochenrückblick" ? weekPanel(n) : ""}
+   ${isSession(n) ? sessionTop(n) : n.period === "week" || n.folder === "Wochenrückblick" ? weekPanel(n) : n.period === "month" || n.folder === "Monatsrückblick" ? monthPanel(n) : ""}
    <div class="nb-tb" role="toolbar" aria-label="Formatierung">
     <button class="btn sm" data-cmd="formatBlock" data-v="H2" data-tip="Überschrift">H</button><button class="btn sm" data-cmd="formatBlock" data-v="H3" data-tip="Zwischenüberschrift">h</button>
     <button class="btn sm" data-cmd="bold" data-tip="Fett"><b>B</b></button><button class="btn sm" data-cmd="italic" data-tip="Kursiv"><i>I</i></button>
@@ -1969,6 +2089,7 @@ function weekNotesHTML(from, to) {
 }
 /* ========= Render ========= */
 const VIEWS = { dashboard: viewDashboard, tagebuch: viewTagebuch, trades: viewTrades, kalender: viewKalender, news: viewNews, notizen: viewNotizen, berichte: viewBerichte, playbooks: viewPlaybooks, reports: viewReports, import: viewImport, einstellungen: viewSettings };
+let lastEnter = null;
 function render() {
   if (S.auth === "login") { $(".shell").hidden = true; $("#modal").innerHTML = ""; let lg = $("#login"); if (!lg) { lg = document.createElement("div"); lg.id = "login"; document.body.appendChild(lg); } const mail = $("#li-mail")?.value; lg.innerHTML = loginHTML(); if (mail) $("#li-mail").value = mail; return; }
   $(".shell").hidden = false; $("#login")?.remove();
@@ -1988,6 +2109,7 @@ function render() {
   const nd = $(".drawer"); if (nd && dr) nd.scrollTop = ds;
   document.body.style.overflow = m ? "hidden" : "";
   hydrateShots(); mountTV(); lockCols();
+  if (S.view === "notizen" && S.noteOpen && S.noteOpen !== lastEnter) { const e = $(".nb-edit"); if (e) e.classList.add("pj-enter"); } lastEnter = S.view === "notizen" ? S.noteOpen : null;
   if (fid) { const el = document.getElementById(fid); if (el && el !== document.activeElement) { el.focus({ preventScroll: true }); if (sel) try { el.setSelectionRange(sel[0], sel[1]); } catch (e) { } } }
 }
 function renderSoft() {
@@ -2053,6 +2175,8 @@ const ACT = {
     const id = "n" + rid(); saveDoc("notes", id, { title, folder: "Monatsrückblick", date: ds, period: "month", html: TEMPLATES.monat.html(), created: new Date().toISOString(), updated: new Date().toISOString() }); S.noteOpen = id; S.noteFolder = "Monatsrückblick"; render(); },
   spSet(a) { saveNoteBody(); const n = S.notes.find(x => x.id === a.dataset.id); if (!n) return; const sp = { ...(n.sp || {}) }; const k = a.dataset.k, v = a.dataset.v; sp[k] = sp[k] === v ? null : v; if (k === "taken" && sp.taken !== "nein") { sp.valid = null; sp.why = null; } if (k === "taken" && sp.taken !== "ja") sp.byCheck = null; if (k === "valid" && sp.valid !== "ja") sp.why = null; if (["m5close", "crv"].includes(k)) stampAmpel(sp); saveDoc("notes", n.id, { ...S.notes.find(x => x.id === n.id), sp, updated: new Date().toISOString() }); render(); },
   weekFill(a) { const n = S.notes.find(x => x.id === a.dataset.id); if (!n) return; const [f, t] = weekRange(n.date || todayStr()); saveNoteBody(); setTimeout(() => { noteInsert(weekSummaryHTML(f, t)); toast("Zahlen und Learnings eingefügt"); }, 30); },
+  monthFill(a) { const n = S.notes.find(x => x.id === a.dataset.id); if (!n) return; const [f, t] = periodOf({ ...n, period: "month" }); saveNoteBody(); setTimeout(() => { const b = $("#ne-body"), ph = b && [...b.querySelectorAll("i")].find(i => /automatisch füllen/.test(i.textContent)); if (ph) { const pp = ph.closest("p"), h = pp && pp.previousElementSibling && pp.previousElementSibling.tagName === "H2" ? pp.previousElementSibling : null; const r = document.createRange(); r.setStartBefore(h || pp); r.collapse(true); if (h) h.remove(); pp.remove(); noteRange = r; } noteInsert(monthSummaryHTML(f, t)); toast("Zahlen des Monats eingefügt"); }, 30); },
+  async monthCopy(a) { const n = S.notes.find(x => x.id === a.dataset.id); if (!n) return; const [f, t] = periodOf({ ...n, period: "month" }); try { await navigator.clipboard.writeText(monthClaudeText(f, t)); toast("Kopiert – jetzt im Chat mit Claude einfügen (⌘V)"); } catch (e) { toast("Kopieren nicht möglich: " + (e.message || e)); } },
   async weekCopy(a) { const n = S.notes.find(x => x.id === a.dataset.id); if (!n) return; const [f, t] = weekRange(n.date || todayStr()); try { await navigator.clipboard.writeText(weekClaudeText(f, t)); toast("Kopiert – jetzt im Chat mit Claude einfügen (⌘V)"); } catch (e) { toast("Kopieren nicht möglich: " + (e.message || e)); } },
   nbView(a) { const v = a.dataset.v; let c = S.nbView || ""; c = c.includes(v) ? c.replace(v, "") : c + v; S.nbView = c; lsSet("pj-nbview", c); render(); },
   noteGo(a) { S.noteOpen = a.dataset.id; S.noteFolder = "Alle"; location.hash = "#notizen"; if (S.view === "notizen") render(); },
@@ -2327,7 +2451,7 @@ async function uploadShots(files) {
 
 
 /* ========= Bilder-Import (Zip mit bilder-zuordnung.json) – v1.1 ========= */
-const APP_VERSION = "1.6.1 · 22.11.26"; /* Design: Icon-Leiste, Notizbaum, volle Breite */
+const APP_VERSION = "1.6.2 · 22.11.26"; /* Design: Icon-Leiste, Notizbaum, volle Breite */
 async function readZip(file) {
   const buf = new Uint8Array(await file.arrayBuffer()); const dv = new DataView(buf.buffer);
   let e = buf.length - 22; while (e >= 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
