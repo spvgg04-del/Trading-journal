@@ -831,8 +831,8 @@ function parseIB(text, shiftH) {
     const proceeds = numv(o.proceeds);
     if (!isFinite(mult) || mult <= 0) { mult = 1; if (isFinite(proceeds) && proceeds !== 0 && price > 0) { const est = Math.abs(proceeds) / (Math.abs(qty) * price); if (est > 1.5) mult = Math.round(est); } }
     const fx = numv(o.fxratetobase);
-    const cur = (o.currency || "").trim();
-    const commCur = (o.ibcommissioncurrency || (commKey && commKey.startsWith("commin") ? commKey.slice(6).toUpperCase() : "") || "").trim().toUpperCase();
+    const cur = (o.currency || o.currencyprimary || "").trim();
+    const commCur = (o.ibcommissioncurrency || o.commissioncurrency || (commKey && commKey.startsWith("commin") ? commKey.slice(6).toUpperCase() : "") || "").trim().toUpperCase();
     const asset = (o.assetclass || o.assetcategory || o.sectype || "").trim();
     const xid = (o.ibexecid || o.execid || o.tradeid || o.transactionid || o.ibordid || "").trim();
     const lod = (o.levelofdetail || "").toUpperCase();
@@ -1380,6 +1380,11 @@ function viewImport() {
      <div class="tools" style="justify-content:flex-end"><button class="btn" data-act="impCancel">Verwerfen</button>${p.trades.length ? `<button class="btn primary" data-act="impGo" ${S.busy ? "disabled" : ""}>${S.busy === "imp" ? "Importiere …" : `${p.trades.length} Trades importieren`}</button>` : ""}</div>
    </div>` : ""}
   </div>
+  <div class="card"><h3>IBKR automatisch <span class="hint">Supabase-Funktion „ibkr-flex“</span></h3>
+   ${Store.mode === "cloud" ? `<div class="tools"><button class="btn primary" data-act="ibkrNow" ${S.busy ? "disabled" : ""}>${S.busy === "ibkr" ? "Hole Trades …" : "Von IBKR abrufen (letzte 7 Tage)"}</button>
+   <label style="display:flex;gap:8px;align-items:center;font-size:13px"><input type="checkbox" data-ch="ibkrAuto" ${S.settings.ibkrAuto ? "checked" : ""}> Beim Öffnen automatisch abrufen (höchstens 1× pro Stunde)</label></div>
+   <div class="faint" style="font-size:12px;margin-top:8px">Holt deine Trades über den IBKR-Token (nur Lesen). Bereits vorhandene Trades werden übersprungen. Neue Trades erscheinen etwa 5–10 Minuten nach der Ausführung bei IBKR. Euro-Kurs: EZB-Tageskurs.</div>` : `<span class="faint">Nur mit Cloud-Datenbank verfügbar.</span>`}
+  </div>
   <div class="card"><h3>So exportierst du aus IBKR</h3><ol class="steps">
    <li>Im Client Portal: <b>Performance &amp; Berichte → Flex-Abfragen</b> → neue <b>Activity Flex Query</b>.</li>
    <li>Bereich <b>Trades</b> wählen, Detailgrad <b>Execution</b>. Felder: <code>Symbol</code>, <code>Date/Time</code>, <code>Buy/Sell</code>, <code>Quantity</code>, <code>TradePrice</code>, <code>IBCommission</code>, <code>Currency</code>, <code>FXRateToBase</code>, <code>Multiplier</code>, <code>IBExecID</code>.</li>
@@ -1825,11 +1830,28 @@ function weekClaudeText(from, to) {
   const days = S.notes.filter(n => n.folder === "Tageszusammenfassungen" && n.date >= from && n.date <= to).sort((a, b) => String(a.date + a.title).localeCompare(b.date + b.title));
   const ts = S.trades.filter(t => t.date >= from && t.date <= to && !t.demo).sort(byClose);
   const ex = execStats(from, to), exAll = execStats("2026-10-01", to);
-  let t = `Wochenrückblick ${fmtDate(from)} – ${fmtDate(to)} (GBP/JPY, Risiko 10 €/Trade, Regel: ${RULE_LINE})\n\nTRADES\n`;
+  const pct = o => o.rate == null ? "–" : Math.round(o.rate * 100) + " %";
+  let t = `Du bist mein Trading-Mentor. Antworte auf Deutsch, kurz, ehrlich.
+Ich: Martin, trade nur GBP/JPY als CFD bei Interactive Brokers, London-Session, max. 1 Trade pro Session, Risiko 10 € = 1 R.
+Meine Regel (bis Mitte Dezember eingefroren – bitte KEINE Regeländerung vorschlagen): ${RULE_LINE}
+Ziele: 60 % Trefferquote und mindestens 80 % Execution Rate. Mein Hauptproblem ist die Ausführung (Zögern bei validen Setups oder zu früher Einstieg), nicht die Analyse.
+Wochenfokus dieser Woche: ${S.settings.weekRule || "–"}
+Begriffe: Execution Rate = valide Setups, bei denen ich bei grüner Ampel abgeschickt habe. „Limit nicht gefüllt“ = abgeschickt, Markt hat nicht gefüllt → zählt als ausgeführt. Entries vom Mentor/der Community sind nicht meine Regel.
+Bewerte Prozess vor Ergebnis. Nutze nur die Fakten unten, erfinde nichts.
+
+Antworte genau so:
+1. Was lief gut (zuerst, konkret)
+2. Muster (höchstens 3)
+3. Genau 1 Vorschlag für den Wochenfokus nächste Woche (1 Satz)
+4. Ein kurzer Text „Rückblick mit Claude“ (5–8 Zeilen), den ich ins Journal einfüge
+
+=== DATEN: Woche ${fmtDate(from)} – ${fmtDate(to)} ===
+
+TRADES\n`;
   t += ts.length ? ts.map(x => `${x.date} ${x.side} Entry ${x.entry} Exit ${x.exit} netto ${fmtNum(x.net, 2)} € = ${Rof(x) == null ? "–" : fmtNum(Rof(x), 2) + " R"}`).join("\n") : "keine";
-  t += `\n\nEXECUTION\nWoche: ${ex.takenValid}/${ex.valid} valide genommen, verpasst ${ex.missed} ${JSON.stringify(ex.why)}, Limit nicht gefüllt ${ex.unfilled} (zählt als ausgeführt), Regelbrüche ${ex.broken}\nSeit 01.10.: ${exAll.takenValid}/${exAll.valid}, verpasst ${exAll.missed}, Regelbrüche ${exAll.broken}\n\nTAGESZUSAMMENFASSUNGEN\n`;
-  t += days.map(n => `--- ${n.title}${n.sp ? ` [HTF ${n.sp.htf || "–"}, M5 ${n.sp.m5 || "–"}, genommen ${n.sp.taken || "–"}, valide ${n.sp.valid || "–"}, warum ${n.sp.why ? (n.sp.whyText || whyOf(n.sp)) : "–"}, Note ${(n.sp.check || {}).grade || "–"}]` : ""}\n${noteText(n).replace(/Seitenbilder aus PDF.*$/, "").slice(0, 3000)}`).join("\n\n");
-  t += `\n\nWochenregel bisher: ${S.settings.weekRule || "–"}\nBitte: kurzer Wochenrückblick (Prozess vor Ergebnis), 3 Muster, 1 Vorschlag für die Wochenregel.`;
+  t += `\n\nEXECUTION\nDiese Woche: Execution Rate ${pct(ex)} (${ex.takenValid} von ${ex.valid} valide ausgeführt), verpasst ${ex.missed}${ex.missed ? " – Gründe: " + Object.entries(ex.why).map(([k, v]) => `${k} ${v}×`).join(", ") : ""}; Limit abgeschickt, aber nicht gefüllt (zählt als ausgeführt) ${ex.unfilled}; Regelbrüche ${ex.broken}; korrekt flat ${ex.flatOk}\nZum Vergleich seit 01.10. (heute berechnet): ${pct(exAll)} (${exAll.takenValid}/${exAll.valid}), verpasst ${exAll.missed}, Limit nicht gefüllt ${exAll.unfilled}, Regelbrüche ${exAll.broken}\n\nTAGESZUSAMMENFASSUNGEN\n`;
+  t += days.map(n => `--- ${n.title}${n.sp ? ` [HTF ${n.sp.htf || "–"}, M5 ${n.sp.m5 || "–"}, Modus ${n.sp.mode || "Solo"}, genommen ${n.sp.taken || "–"}, valide ${n.sp.valid || "–"}, Grund ${n.sp.why ? whyOf(n.sp) + (n.sp.whyText ? ": " + n.sp.whyText : "") : "–"}, Note ${(n.sp.check || {}).grade || "–"}, Ampel ${n.sp.goAt ? "grün " + n.sp.goAt : n.sp.flatAt ? "rot " + n.sp.flatAt : "–"}]` : ""}\n${noteText(n).replace(/Seitenbilder aus PDF.*$/, "").slice(0, 3000)}`).join("\n\n");
+  t += `\n\n=== ENDE DATEN – bitte jetzt in den 4 Punkten oben antworten ===`;
   return t;
 }
 function weekPanel(n) {
@@ -1950,6 +1972,7 @@ const VIEWS = { dashboard: viewDashboard, tagebuch: viewTagebuch, trades: viewTr
 function render() {
   if (S.auth === "login") { $(".shell").hidden = true; $("#modal").innerHTML = ""; let lg = $("#login"); if (!lg) { lg = document.createElement("div"); lg.id = "login"; document.body.appendChild(lg); } const mail = $("#li-mail")?.value; lg.innerHTML = loginHTML(); if (mail) $("#li-mail").value = mail; return; }
   $(".shell").hidden = false; $("#login")?.remove();
+  if (S.loaded) lsSet("pj-lastnote", S.noteOpen && !String(S.noteOpen).startsWith("rep:") ? S.noteOpen : null);
   const ae = document.activeElement, fid = ae && ae.id; let sel = null;
   try { if (fid && typeof ae.selectionStart === "number") sel = [ae.selectionStart, ae.selectionEnd]; } catch (e) { }
   const dr = $(".drawer"), ds = dr ? dr.scrollTop : 0;
@@ -2097,6 +2120,7 @@ const ACT = {
   delPb() { delDoc("playbooks", S.pbEdit.id); if (S.pbOpen === S.pbEdit.id) S.pbOpen = null; S.pbEdit = null; S.confirmDel = null; toast("Playbook gelöscht"); render(); },
   dim(a) { S.reportDim = a.dataset.v; render(); },
   impCancel() { S.importPrev = null; render(); },
+  async ibkrNow() { if (S.busy) return; S.busy = "ibkr"; render(); try { const p = await ibkrFetch(); S.importPrev = p; if (!p.trades.length) toast(p.execs ? "Keine neuen Trades – alles schon im Journal" : "IBKR: keine Trades in den letzten 7 Tagen"); } catch (e) { toast("IBKR-Abruf: " + (e.message || e)); } S.busy = null; render(); },
   async impGo() {
     const p = S.importPrev; if (!p || S.busy) return; S.busy = "imp"; render();
     await saveMany("trades", p.trades);
@@ -2147,6 +2171,7 @@ function onField(e) {
     case "noteField": { const n = S.notes.find(x => x.id === S.noteOpen); if (!n) break; if (k === "title" && isInput) saveLater("notes", n.id, { ...n, title: el.value, updated: new Date().toISOString() }); else if (k !== "title" && !isInput) { saveDoc("notes", n.id, { ...n, [k]: el.value, updated: new Date().toISOString() }); if (k === "folder") S.noteFolder = el.value; render(); } break; }
     case "noteImg": if (!isInput && el.files.length) noteImages([...el.files]); break;
     case "weekRule": if (!isInput) patchSettings({ weekRule: el.value.trim() }); break;
+    case "ibkrAuto": if (!isInput) { patchSettings({ ibkrAuto: el.checked }); render(); } break;
     case "strategy": if (isInput) saveLater("meta", "strategy", { text: el.value }); break;
     case "mcpWrite": if (!isInput) { saveDoc("meta", "mcp", { ...S.mcp, write: el.checked }); render(); } break;
     case "weekText": if (isInput) { const w = el.dataset.w, wd = S.weeks[w] || {}; saveLater("weeks", w, { ...wd, answers: { ...(wd.answers || {}), [el.dataset.q]: el.value } }); } break;
@@ -2302,7 +2327,7 @@ async function uploadShots(files) {
 
 
 /* ========= Bilder-Import (Zip mit bilder-zuordnung.json) – v1.1 ========= */
-const APP_VERSION = "1.6.0 · 22.11.26"; /* Design: Icon-Leiste, Notizbaum, volle Breite */
+const APP_VERSION = "1.6.1 · 22.11.26"; /* Design: Icon-Leiste, Notizbaum, volle Breite */
 async function readZip(file) {
   const buf = new Uint8Array(await file.arrayBuffer()); const dv = new DataView(buf.buffer);
   let e = buf.length - 22; while (e >= 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
@@ -2435,12 +2460,31 @@ document.addEventListener("submit", async e => {
 
 /* ========= Init ========= */
 let lastLoad = 0;
+/* v1.6.1: IBKR automatisch (Supabase-Funktion ibkr-flex, Token liegt nur in Supabase) */
+async function ibkrFetch(opt) {
+  const { data, error } = await Store.sb.functions.invoke("ibkr-flex", { body: { base: (S.settings.currency || "EUR").toUpperCase(), ...(opt || {}) } });
+  if (error) { let m = error.message || String(error); try { const j = await error.context.json(); if (j && j.error) m = j.error; } catch (e) { } throw new Error(m); }
+  const d = typeof data === "string" ? JSON.parse(data) : data; if (!d || d.error) throw new Error((d && d.error) || "keine Antwort");
+  const p = buildImport(d.csv || "", `IBKR ${fmtDate(d.from.replace(/(\d{4})(\d{2})(\d{2})/, "$1-$2-$3"))} – ${fmtDate(d.to.replace(/(\d{4})(\d{2})(\d{2})/, "$1-$2-$3"))}`);
+  return { ...p, kind: "IBKR automatisch" };
+}
+async function ibkrAuto() {
+  if (Store.mode !== "cloud" || !S.settings.ibkrAuto || S.importPrev) return;
+  const last = +lsGet("pj-ibkr-at") || 0; if (Date.now() - last < 3600000) return;
+  lsSet("pj-ibkr-at", String(Date.now()));
+  try {
+    const p = await ibkrFetch();
+    if (!p.trades.length) return;
+    if (p.fx) { S.importPrev = p; toast(`IBKR: ${p.trades.length} neue Trades – Euro-Kurs fehlt, bitte unter Import prüfen`); render(); return; }
+    await saveMany("trades", p.trades); toast(`IBKR: ${p.trades.length} neue${p.trades.length === 1 ? "r" : ""} Trade${p.trades.length === 1 ? "" : "s"} übernommen`); render();
+  } catch (e) { if (!lsGet("pj-ibkr-err-" + todayStr())) { lsSet("pj-ibkr-err-" + todayStr(), "1"); toast("IBKR-Abruf: " + (e.message || e)); } }
+}
 async function loadData(silent) {
   if (!silent) { S.dbState = "loading"; render(); }
-  try { const rows = await Store.loadAll(); applyRows(rows); S.loaded = true; S.dbState = "ok"; lastLoad = Date.now(); }
+  try { const rows = await Store.loadAll(); applyRows(rows); if (!S.loaded && !S.noteOpen) { const id = lsGet("pj-lastnote"), n = id && S.notes.find(x => x.id === id); if (n) { S.noteOpen = n.id; S.noteFolder = n.folder || "Alle"; } } S.loaded = true; S.dbState = "ok"; lastLoad = Date.now(); }
   catch (e) { S.dbState = "error"; S.err = e.message || String(e); }
   silent ? renderSoft() : render();
-  ensureNews();
+  ensureNews(); if (S.dbState === "ok") ibkrAuto();
 }
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && S.loaded && Store.mode === "cloud" && !dirty.size && Date.now() - lastLoad > 60000) loadData(true); });
 async function init() {
