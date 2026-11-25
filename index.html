@@ -286,7 +286,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:13px}
 .kpi-click{cursor:pointer}.kpi-click:hover{border-color:var(--accent)}
 .lab2{font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:6px}.dpr{border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.5;}.linkbtn{background:none;border:0;padding:0;color:var(--accent);cursor:pointer;font:inherit}
 .val.warn{color:var(--warn)}
-.pj-cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:10px 0}.pj-col{min-width:0}.pj-col img{width:100%;height:auto}.ne-ed .pj-col{border:1px dashed var(--line);border-radius:8px;padding:6px;min-height:60px}@media (max-width:760px){.pj-cols{grid-template-columns:1fr}}.pj-cols{align-items:stretch}.ne-ed .pj-cols{caret-color:auto}.ne-ed .pj-col{outline:none}.ne-ed .pj-col:focus-within{border-color:var(--accent,#378ADD);border-style:solid}.ne-ed .pj-col:not(:has(img))::after{content:"Bild: hier klicken + ⌘V";display:block;font-size:11.5px;color:var(--muted);opacity:.6;font-style:italic;margin-top:4px;pointer-events:none}.pj-cap{font-size:12.5px;color:var(--muted);font-style:italic;margin:4px 0 10px!important}.ne-ed .pj-cap:has(>br:only-child)::before{content:"Beschreibung …";opacity:.55;pointer-events:none}.ne-ed img[data-shot]{cursor:grab}img[data-shot^="up-"]{display:block;width:100%;min-height:90px;background:var(--surface2);border:1px dashed var(--line);border-radius:8px}
+.pj-cols{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:10px 0}.pj-col{min-width:0}.pj-col img{width:100%;height:auto}.ne-ed .pj-col{border:1px dashed var(--line);border-radius:8px;padding:6px;min-height:60px}@media (max-width:760px){.pj-cols{grid-template-columns:1fr}}.pj-cols{align-items:stretch}.ne-ed .pj-cols{caret-color:auto}.ne-ed .pj-col{outline:none}.ne-ed .pj-col:focus-within{border-color:var(--accent,#378ADD);border-style:solid}.ne-ed .pj-col:not(:has(img))::after{content:"Bild: hier klicken + ⌘V";display:block;font-size:11.5px;color:var(--muted);opacity:.6;font-style:italic;margin-top:4px;pointer-events:none}.pj-cap{font-size:12.5px;color:var(--muted);font-style:italic;margin:4px 0 10px!important}.ne-ed .pj-cap:has(>br:only-child)::before{content:"Beschreibung …";opacity:.55;pointer-events:none}.ne-ed img[data-shot]{cursor:grab}#pj-tools{position:absolute;z-index:60;display:none;gap:3px;padding:3px;background:var(--surface);border:1px solid var(--line);border-radius:9px;box-shadow:0 4px 14px rgba(0,0,0,.18)}#pj-tools.on{display:flex}#pj-tools button{border:0;background:transparent;color:var(--fg);font:inherit;font-size:13px;line-height:1;padding:5px 7px;border-radius:6px;cursor:pointer}#pj-tools button:hover{background:var(--surface2)}#pj-tools button.del:hover{background:var(--neg-soft);color:var(--neg)}#pj-tools button:disabled{opacity:.3;cursor:default;background:transparent}img[data-shot^="up-"]{display:block;width:100%;min-height:90px;background:var(--surface2);border:1px dashed var(--line);border-radius:8px}
 .kpi .val{white-space:nowrap}
 .nb-tree>*,.nb-tree .nb-tn,.nb-tree .nb-f{flex-shrink:0}
 .nb-body p{margin:10px 0}.nb-body ul,.nb-body ol{margin:6px 0 10px}.nb-body li{margin:3px 0}
@@ -801,7 +801,7 @@ function applyRows(rows) {
   rebuildNews();
 }
 function strip(o) { const c = { ...o }; delete c.id; return JSON.parse(JSON.stringify(c)); }
-function saveDoc(col, id, data) { const clean = strip(data); setLocal(col, id, clean); return persist(col + "/" + id, () => Store.set(col, id, clean)); }
+function saveDoc(col, id, data) { /* v1.6.3: wartende verzögerte Speicherung desselben Dokuments verwerfen – S.* enthält ihren Stand bereits, sonst überschreibt sie später den neuen Klick */ try { const k0 = col + "/" + id; if (deb[k0]) { clearTimeout(deb[k0]); delete deb[k0]; dirty.delete(k0); delete pendingLocal[k0]; } } catch (e) { } const clean = strip(data); setLocal(col, id, clean); return persist(col + "/" + id, () => Store.set(col, id, clean)); }
 function delDoc(col, id) {
   if (col === "trades") S.trades = S.trades.filter(t => t.id !== id);
   if (col === "playbooks") S.playbooks = S.playbooks.filter(t => t.id !== id);
@@ -2432,6 +2432,44 @@ document.addEventListener("paste", e => {
   const files = [...(e.clipboardData?.files || [])].filter(f => f.type.startsWith("image/"));
   if (files.length) { e.preventDefault(); uploadShots(files); }
 });
+/* v1.6.3: Leiste zum Verschieben/Löschen von Spalten-Blöcken (↑ ↓ 🗑) und Bildern (🗑) – liegt außerhalb der Notiz, wird nie gespeichert */
+let toolT = null, toolFor = null;
+function toolBar() { let t = document.getElementById("pj-tools"); if (!t) { t = document.createElement("div"); t.id = "pj-tools"; document.body.appendChild(t); t.addEventListener("mousedown", e => e.preventDefault()); t.addEventListener("mouseenter", () => clearTimeout(toolT)); t.addEventListener("mouseleave", () => hideTools(250)); t.addEventListener("click", toolClick); } return t; }
+function hideTools(ms) { clearTimeout(toolT); toolT = setTimeout(() => { const t = document.getElementById("pj-tools"); if (t) t.classList.remove("on"); toolFor = null; }, ms || 0); }
+function showTools(el) {
+  clearTimeout(toolT); const t = toolBar();
+  if (toolFor !== el) {
+    toolFor = el; const isImg = el.tagName === "IMG";
+    t.innerHTML = isImg ? '<button class="del" data-t="del" title="Bild löschen">🗑 Bild</button>'
+      : `<button data-t="up" title="Block nach oben"${el.previousElementSibling ? "" : " disabled"}>↑</button><button data-t="down" title="Block nach unten"${el.nextElementSibling ? "" : " disabled"}>↓</button><button class="del" data-t="del" title="Spalten-Block löschen">🗑</button>`;
+  }
+  const r = el.getBoundingClientRect(); t.classList.add("on");
+  t.style.top = (window.scrollY + r.top + 4) + "px"; t.style.left = (window.scrollX + r.right - t.offsetWidth - 4) + "px";
+}
+function toolClick(e) {
+  const b = e.target.closest("button[data-t]"); if (!b || b.disabled || !toolFor) return; const el = toolFor, ed = edOf(el); if (!ed) return; const act = b.dataset.t;
+  if (el.tagName === "IMG") {
+    if (act !== "del" || !confirm("Dieses Bild aus der Notiz löschen?")) return;
+    const unit = imgUnit(el), col = el.closest(".pj-col"); unit.forEach(u => u.remove());
+    if (col && !col.querySelector("img") && !col.textContent.trim()) col.innerHTML = "<p><br></p>";
+  } else {
+    const y0 = el.getBoundingClientRect().top;
+    if (act === "up" && el.previousElementSibling) el.parentNode.insertBefore(el, el.previousElementSibling);
+    else if (act === "down" && el.nextElementSibling) el.nextElementSibling.after(el);
+    if (act === "up" || act === "down") { const dy = el.getBoundingClientRect().top - y0; let sp = el.parentNode; while (sp && sp !== document.body && !(sp.scrollHeight > sp.clientHeight && /auto|scroll/.test(getComputedStyle(sp).overflowY))) sp = sp.parentNode; if (sp && sp !== document.body) sp.scrollTop += dy; else window.scrollBy(0, dy); }
+    else if (act === "del") { if (el.querySelector("img") ? !confirm("Diesen Spalten-Block mit allen Bildern darin löschen?") : !confirm("Diesen Spalten-Block löschen?")) return; el.remove(); if (!ed.children.length) ed.innerHTML = "<p><br></p>"; }
+    else return;
+  }
+  saveNoteBody(); toolFor = null;
+  if (act === "del" || !document.body.contains(el)) hideTools(); else showTools(el);
+}
+document.addEventListener("mouseover", e => {
+  if (dragImg) return; const tgt = e.target; if (!tgt.closest) return; if (tgt.closest("#pj-tools")) return;
+  const img = tgt.closest(".ne-ed img[data-shot]"); if (img && !String(img.dataset.shot).startsWith("up-")) { showTools(img); return; }
+  const g = tgt.closest(".ne-ed .pj-cols"); if (g) { showTools(g); return; }
+  if (toolFor) hideTools(250);
+});
+window.addEventListener("scroll", () => { if (toolFor && document.body.contains(toolFor)) showTools(toolFor); else hideTools(); }, true);
 function readImport(file) {
   const r = new FileReader();
   r.onload = () => { try { S.importPrev = buildAnyImport(String(r.result), file.name); if (!S.importPrev.execs) toast("In der Datei wurden keine Trades gefunden. Ist es ein IBKR-Export mit Trades?"); } catch (err) { toast("Datei konnte nicht gelesen werden: " + err.message); } render(); };
@@ -2451,7 +2489,7 @@ async function uploadShots(files) {
 
 
 /* ========= Bilder-Import (Zip mit bilder-zuordnung.json) – v1.1 ========= */
-const APP_VERSION = "1.6.2 · 22.11.26"; /* Design: Icon-Leiste, Notizbaum, volle Breite */
+const APP_VERSION = "1.6.3 · 25.11.26"; /* Design: Icon-Leiste, Notizbaum, volle Breite */
 async function readZip(file) {
   const buf = new Uint8Array(await file.arrayBuffer()); const dv = new DataView(buf.buffer);
   let e = buf.length - 22; while (e >= 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
