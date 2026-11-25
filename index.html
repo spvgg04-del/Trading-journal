@@ -1696,7 +1696,7 @@ function buildAnyImport(text, name) {
   return { name, kind: "Tradezella", execs: tz.trades.length, dup: tz.trades.length - fresh.length, skipped: tz.skipped, trades: fresh.sort(byClose), openExecs: 0, fx: 0, cols: tz.cols };
 }
 /* ========= Notizen (Notebook) ========= */
-const NOTE_FOLDERS = ["Tageszusammenfassungen", "Wochenrückblick", "Monatsrückblick", "Eigene Analyse", "Learnings", "Checklisten-Feedback", "Mindflow", "Playbook", "KI-Berichte", "Sonstiges"];
+const NOTE_FOLDERS = ["Tageszusammenfassungen", "Wochenrückblick", "Monatsrückblick", "Eigene Analyse", "Learnings", "Checklisten-Feedback", "Mindflow", "Playbook", "Backtest", "KI-Berichte", "Sonstiges"];
 const OK_TAGS = { P: 1, BR: 1, B: 1, STRONG: 1, I: 1, EM: 1, U: 1, H2: 1, H3: 1, H4: 1, UL: 1, OL: 1, LI: 1, BLOCKQUOTE: 1, IMG: 1, A: 1, DIV: 1, SPAN: 1, TABLE: 1, THEAD: 1, TBODY: 1, TR: 1, TD: 1, TH: 1, HR: 1 };
 function sanitizeHTML(html, forSave) {
   const doc = new DOMParser().parseFromString("<div>" + (html || "") + "</div>", "text/html");
@@ -1734,6 +1734,7 @@ function noteFolders() {
 const sortNotes = (a, b) => String(b.date || b.created || "").localeCompare(String(a.date || a.created || "")) || String(b.created || "").localeCompare(String(a.created || ""));
 
 const TEMPLATES = {
+  backtest: { name: "Backtest", folder: "Backtest", period: "day", html: () => `<p><b>Checkliste:</b>&nbsp;<i>(Prime-Checkliste mit ⌘V hier einfügen)</i></p><h2>Bilder</h2><div class="pj-cols"><div class="pj-col"><p><b>Entry</b></p><p><br></p></div><div class="pj-col"><p><b>Exit / TP</b></p><p><br></p></div></div><h2>Gedanken</h2><p><br></p>` },
   tages: { name: "Tageszusammenfassung", folder: "Tageszusammenfassungen", period: "day", html: () => `<h2>Sessionplan</h2><p><b>Session:</b> London</p><p><b>Max. Risiko:</b> ${esc(fmtMoney(10, { dec: 0 }))} · <b>Max. Trades:</b> ${esc(S.settings.maxTrades || 1)} pro Session · <b>Discord:</b> aus</p><h2>Marktbild</h2><p><b>Übergeordnete Struktur (H1/H4):</b> </p><p><b>M5-Trend:</b> </p><p><b>Heute interessant:</b> Trendfortsetzung / Trendwechsel / Reaktion an Zone / RangeFlow</p><h3>Szenario der Session</h3><ul><li><b>Long:</b> </li><li><b>Short:</b> </li><li><b>Range:</b> </li></ul><p><b>Analysebild:</b></p><h2>Live-Checkliste</h2><ul><li>Zone klar?</li><li>Richtung klar?</li><li>Bestätigung klar? „Bestätigung ist valide, weil …“</li><li>M5-Kerze geschlossen?</li></ul><p>4× Ja = Trade. Ein Nein oder unklar = flat.</p><p><b>Entrybild:</b></p><h2>Session Review</h2><p><b>Trade genommen:</b> ja / nein</p><p><b>Entry-Grund:</b> </p><p><b>Hauptfehler:</b> </p><p><b>Was war gut:</b> </p><p><b>Wenn kein Trade – war ein valider Trade da? Warum nicht?</b> </p><p><b>Exitbild:</b></p><h2>Tageslearning</h2><p><b>Ein Satz:</b> </p><p><b>Nächstes Mal:</b> </p>` },
   analyse: { name: "Pre-Session-Analyse", folder: "Eigene Analyse", period: "day", html: () => `<h2>Analyse vor der Session</h2><p><b>Übergeordnete Struktur (H1/H4):</b> short / long / range</p><p><b>Potenzielle Handelszonen:</b> </p><p><b>M30/M15-Trend:</b> </p><p><b>M5-Trend:</b> </p><h3>Long-Szenario</h3><p>Ich warte auf … Ziel ist …</p><h3>Short-Szenario</h3><p>Ich warte auf … Ziel ist …</p><p><b>News heute:</b> </p><p><b>Bild der Analyse:</b></p>` },
   woche: { name: "Wochenrückblick", folder: "Wochenrückblick", period: "week", html: () => `<h2>Zahlen der Woche</h2><p><i>Mit „Kennzahlen einfügen“ automatisch füllen.</i></p><h2>Rückblick</h2>${(S.settings.weekQuestions || []).map(q => `<h3>${esc(q)}</h3><p></p>`).join("")}` },
@@ -1763,7 +1764,7 @@ const UNFILLED = "Limit nicht gefüllt", MENTOR_WAIT = "Auf Mentor gewartet";
 const isUnfilled = sp => !!sp && sp.taken === "nein" && sp.valid === "ja" && whyOf(sp) === UNFILLED;
 const isMissed = sp => !!sp && sp.taken === "nein" && sp.valid === "ja" && !isUnfilled(sp);
 const whyList = sp => [UNFILLED, ...WHY_NOT.slice(0, -1), ...(sp.mode === "Live mit Community" || whyOf(sp) === MENTOR_WAIT ? [MENTOR_WAIT] : []), WHY_NOT[WHY_NOT.length - 1]];
-const isSession = n => n && (n.kind === "session" || n.sp);
+const isSession = n => n && n.kind !== "backtest" && (n.kind === "session" || n.sp);
 function parseChecklist(text) {
   if (!/Prime Trading Checkliste/i.test(text || "")) return null;
   const o = { raw: String(text).trim() };
@@ -1818,6 +1819,38 @@ function startSession(sess) {
   S.noteOpen = id; S.noteFolder = "Tageszusammenfassungen"; render();
 }
 function spBtns(n, k, opts, cur) { return `<span class="seg">` + opts.map(o => `<button class="sp-btn" data-act="spSet" data-id="${esc(n.id)}" data-k="${k}" data-v="${esc(o)}" aria-pressed="${cur === o}">${esc(o)}</button>`).join("") + `</span>`; }
+/* v1.6.4: Backtest-Notiz – eigene Felder (bt), zählt nie in die Live-Statistik */
+const btTitle = bt => bt.day ? `Backtest ${bt.day.slice(8, 10)}.${bt.day.slice(5, 7)}.${bt.day.slice(2, 4)} ${bt.session || "London"}` : "Backtest – Tag eintragen";
+function btBtns(n, k, opts, cur) { return `<span class="seg">` + opts.map(o => `<button class="sp-btn" data-act="btSet" data-id="${esc(n.id)}" data-k="${k}" data-v="${esc(o)}" aria-pressed="${cur === o}">${esc(o)}</button>`).join("") + `</span>`; }
+function btRule(bt) {
+  const bad = [], good = [];
+  if (bt.grade === "kein Setup") bad.push("kein Setup"); else if (bt.grade) good.push("Note " + bt.grade);
+  if (bt.m5close === "nein") bad.push("kein M5-Close"); else if (bt.m5close === "ja") good.push("M5-Close");
+  if (bt.crv === "nein") bad.push("CRV < 1:1,5"); else if (bt.crv === "ja") good.push("CRV ≥ 1:1,5");
+  return { ok: bad.length ? false : bt.grade && bt.m5close && bt.crv ? true : null, bad, good };
+}
+function btPanel(n) {
+  const bt = n.bt || {}, r = btRule(bt), c = bt.check;
+  const amp = r.ok === true ? `<div class="ampel go" role="status"><div><b>GRÜN</b><span>${esc(r.good.join(" · "))} – Limit setzen.</span></div></div>`
+    : r.ok === false ? `<div class="ampel flat" role="status"><div><b>FLAT</b><span>${esc(r.bad.join(", "))} – keine Order.</span></div></div>`
+    : `<div class="ampel wait" role="status"><div><b>Noch offen</b><span>Note, M5-Close und CRV ausfüllen.</span></div></div>`;
+  let h = stepH("", "Backtest") + `<div class="sp live">
+   <div class="sp-row"><b>Backtest-Tag</b><input class="inp" type="date" style="width:auto" data-ch="btText" data-id="${esc(n.id)}" data-k="day" value="${esc(bt.day || "")}"><b style="min-width:auto;margin-left:10px">Session</b>${btBtns(n, "session", ["London", "New York"], bt.session || "London")}</div>
+   <div class="sp-row"><b>Prime-Checkliste</b>${c ? `<span class="pill">${esc([c.strategie, c.setup, c.zone].filter(Boolean).join(" · "))}</span> ` : ""}${btBtns(n, "grade", ["A", "B", "kein Setup"], bt.grade)}${c ? "" : `<span class="faint" style="font-size:12px">oder Checkliste in die Notiz einfügen (⌘V)</span>`}</div>
+   <div class="sp-row"><b>Richtung</b>${btBtns(n, "dir", ["long", "short"], bt.dir)}</div>
+   <div class="sp-row"><b>M5-Close abgewartet</b>${btBtns(n, "m5close", ["ja", "nein"], bt.m5close)}<b style="min-width:auto;margin-left:10px">CRV ≥ 1:1,5</b>${btBtns(n, "crv", ["ja", "nein"], bt.crv)}</div>
+   ${amp}</div>
+   <div class="sp">
+   <div class="sp-row"><b>Trade genommen?</b>${btBtns(n, "taken", ["ja", "nein"], bt.taken)}${r.ok === false && bt.taken === "ja" ? `<span class="faint" style="font-size:12px;color:var(--neg)">Regelbruch – Ampel war FLAT</span>` : ""}</div>
+   ${bt.taken === "ja" ? `<div class="sp-row"><b>Limit gefüllt?</b>${btBtns(n, "filled", ["ja", "nein"], bt.filled)}</div>` : ""}
+   ${bt.taken === "ja" && bt.filled === "ja" ? `<div class="sp-row"><b>Ergebnis</b>${btBtns(n, "result", ["TP", "SL", "BE"], bt.result)}<b style="min-width:auto;margin-left:10px">R</b><input class="inp" type="text" inputmode="decimal" style="width:90px" placeholder="z. B. 1,5" data-ch="btText" data-id="${esc(n.id)}" data-k="r" value="${esc(bt.r || "")}"></div>` : ""}
+   ${bt.taken === "ja" && bt.filled === "ja" && bt.result === "SL" ? `<div class="sp-row"><b>Danach TP erreicht? (gefischt)</b>${btBtns(n, "fished", ["ja", "nein"], bt.fished)}</div>` : ""}
+   ${bt.taken === "nein" ? `<div class="sp-row"><b>Im Nachhinein valide?</b>${btBtns(n, "valid", ["ja", "nein"], bt.valid)}</div>` : ""}
+   ${bt.taken === "nein" && bt.valid === "ja" ? `<div class="sp-row"><b>Warum nicht?</b>${btBtns(n, "why", ["Setup unklar", "gezögert", "Anderes"], bt.why)}</div>` : ""}
+   ${(bt.taken === "ja" && bt.filled === "nein") || (bt.taken === "nein" && bt.valid === "ja") ? `<div class="sp-row"><b>Wäre TP erreicht worden?</b>${btBtns(n, "missTP", ["ja", "nein"], bt.missTP)}</div>` : ""}
+   </div>`;
+  return h;
+}
 function sessionPanel(n, part) {
   const sp = n.sp || {}, c = sp.check, r = ruleEval(sp), r0 = ruleEval({ ...sp, byCheck: null });
   let h = `<div class="sp live">
@@ -2057,7 +2090,7 @@ function noteEditor(n, folders) {
      <select class="inp" id="ne-folder" data-ch="noteField" data-k="folder" style="width:auto">${folders.filter(f => f !== "KI-Berichte" || n.folder === "KI-Berichte").map(f => `<option ${f === (n.folder || "Sonstiges") ? "selected" : ""}>${esc(f)}</option>`).join("")}</select>
      ${n.date ? `<button class="btn sm" data-act="openDay" data-d="${esc(n.date)}">Zum Tag</button>` : ""}
     </div></div>
-   ${isSession(n) ? sessionTop(n) : n.period === "week" || n.folder === "Wochenrückblick" ? weekPanel(n) : n.period === "month" || n.folder === "Monatsrückblick" ? monthPanel(n) : ""}
+   ${n.kind === "backtest" ? btPanel(n) : isSession(n) ? sessionTop(n) : n.period === "week" || n.folder === "Wochenrückblick" ? weekPanel(n) : n.period === "month" || n.folder === "Monatsrückblick" ? monthPanel(n) : ""}
    <div class="nb-tb" role="toolbar" aria-label="Formatierung">
     <button class="btn sm" data-cmd="formatBlock" data-v="H2" data-tip="Überschrift">H</button><button class="btn sm" data-cmd="formatBlock" data-v="H3" data-tip="Zwischenüberschrift">h</button>
     <button class="btn sm" data-cmd="bold" data-tip="Fett"><b>B</b></button><button class="btn sm" data-cmd="italic" data-tip="Kursiv"><i>I</i></button>
@@ -2078,7 +2111,7 @@ function noteEditor(n, folders) {
    <div class="tools" style="justify-content:space-between;margin-top:10px"><span class="faint" style="font-size:11.5px">${n.source ? "Quelle: " + esc(n.source) + " · " : ""}<span id="ne-saved">${S.savedFor === n.id && S.savedTxt ? S.savedTxt : "Wird automatisch gespeichert"}</span></span>${del ? `<span><button class="btn sm" data-act="cancelDel">Abbrechen</button> <button class="btn sm danger solid" data-act="noteDel">Löschen</button></span>` : `<button class="btn sm danger" data-act="noteAskDel">Notiz löschen</button>`}</div>`;
 }
 function dayNotesHTML(date) {
-  const ns = allNotes().filter(n => n.date === date && n.folder !== "Wochenrückblick" && n.folder !== "Monatsrückblick");
+  const ns = allNotes().filter(n => n.date === date && n.folder !== "Wochenrückblick" && n.folder !== "Monatsrückblick" && n.kind !== "backtest");
   if (!ns.length) return "";
   return `<div class="chips" style="align-items:center"><span class="muted" style="font-size:12px;font-weight:600">Notizen</span>${ns.map(n => `<button class="chip" data-act="noteGo" data-id="${esc(n.id)}">${ico("tagebuch", 13)} ${esc(n.title || n.folder)}</button>`).join("")}</div>`;
 }
@@ -2142,7 +2175,8 @@ const ACT = {
     const t = TEMPLATES[a.dataset.v]; const id = "n" + rid(); const d = todayStr();
     const folder = t.folder || (S.noteFolder && S.noteFolder !== "Alle" && S.noteFolder !== "KI-Berichte" ? S.noteFolder : "Sonstiges");
     const title = a.dataset.v === "woche" ? `KW ${isoWeek(d)} ${d.slice(0, 4)}` : a.dataset.v === "monat" ? `${MONTHS[+d.slice(5, 7) - 1]} ${d.slice(0, 4)}` : a.dataset.v === "leer" ? "" : `${t.name} ${fmtDate(d)} London`;
-    saveDoc("notes", id, { title, folder, date: d, period: t.period || "day", html: t.html(), created: new Date().toISOString(), updated: new Date().toISOString() });
+    const bt = a.dataset.v === "backtest";
+    saveDoc("notes", id, { title: bt ? "Backtest – Tag eintragen" : title, folder, date: d, period: t.period || "day", html: t.html(), ...(bt ? { kind: "backtest", bt: { session: "London" } } : {}), created: new Date().toISOString(), updated: new Date().toISOString() });
     S.noteMenu = false; S.noteOpen = id; S.noteFolder = folder; render(); setTimeout(() => { const e = $("#ne-title"); if (e && !title) e.focus(); }, 30);
   },
   noteFolder(a) { S.noteFolder = a.dataset.v; S.noteOpen = null; render(); },
@@ -2173,6 +2207,7 @@ const ACT = {
   monthStart() { S.rbMenu = false; const d = todayStr(); let y = +d.slice(0, 4), m = +d.slice(5, 7); if (+d.slice(8, 10) <= 7) { m--; if (!m) { m = 12; y--; } } const title = `${MON_DE[m - 1]} ${y}`, ds = `${y}-${String(m).padStart(2, "0")}-01`;
     const ex = S.notes.find(n => n.folder === "Monatsrückblick" && String(n.title || "").trim() === title); if (ex) { S.noteOpen = ex.id; S.noteFolder = "Monatsrückblick"; render(); return; }
     const id = "n" + rid(); saveDoc("notes", id, { title, folder: "Monatsrückblick", date: ds, period: "month", html: TEMPLATES.monat.html(), created: new Date().toISOString(), updated: new Date().toISOString() }); S.noteOpen = id; S.noteFolder = "Monatsrückblick"; render(); },
+  btSet(a) { saveNoteBody(); const n = S.notes.find(x => x.id === a.dataset.id); if (!n) return; const bt = { ...(n.bt || {}) }; const k = a.dataset.k, v = a.dataset.v; bt[k] = k === "session" ? v : (bt[k] === v ? null : v); if (bt.taken !== "ja") bt.filled = null; if (bt.taken !== "nein") bt.valid = null; if (bt.valid !== "ja") bt.why = null; if (!((bt.taken === "ja" && bt.filled === "nein") || (bt.taken === "nein" && bt.valid === "ja"))) bt.missTP = null; if (bt.filled !== "ja") { bt.result = null; bt.r = null; } if (bt.result !== "SL") bt.fished = null; const cur = S.notes.find(x => x.id === n.id); saveDoc("notes", n.id, { ...cur, bt, title: String(cur.title || "").startsWith("Backtest") ? btTitle(bt) : cur.title, updated: new Date().toISOString() }); render(); },
   spSet(a) { saveNoteBody(); const n = S.notes.find(x => x.id === a.dataset.id); if (!n) return; const sp = { ...(n.sp || {}) }; const k = a.dataset.k, v = a.dataset.v; sp[k] = sp[k] === v ? null : v; if (k === "taken" && sp.taken !== "nein") { sp.valid = null; sp.why = null; } if (k === "taken" && sp.taken !== "ja") sp.byCheck = null; if (k === "valid" && sp.valid !== "ja") sp.why = null; if (["m5close", "crv"].includes(k)) stampAmpel(sp); saveDoc("notes", n.id, { ...S.notes.find(x => x.id === n.id), sp, updated: new Date().toISOString() }); render(); },
   weekFill(a) { const n = S.notes.find(x => x.id === a.dataset.id); if (!n) return; const [f, t] = weekRange(n.date || todayStr()); saveNoteBody(); setTimeout(() => { noteInsert(weekSummaryHTML(f, t)); toast("Zahlen und Learnings eingefügt"); }, 30); },
   monthFill(a) { const n = S.notes.find(x => x.id === a.dataset.id); if (!n) return; const [f, t] = periodOf({ ...n, period: "month" }); saveNoteBody(); setTimeout(() => { const b = $("#ne-body"), ph = b && [...b.querySelectorAll("i")].find(i => /automatisch füllen/.test(i.textContent)); if (ph) { const pp = ph.closest("p"), h = pp && pp.previousElementSibling && pp.previousElementSibling.tagName === "H2" ? pp.previousElementSibling : null; const r = document.createRange(); r.setStartBefore(h || pp); r.collapse(true); if (h) h.remove(); pp.remove(); noteRange = r; } noteInsert(monthSummaryHTML(f, t)); toast("Zahlen des Monats eingefügt"); }, 30); },
@@ -2308,6 +2343,10 @@ function onField(e) {
     case "tRule": if (!isInput) { const t = getTrade(S.openTrade); const r = new Set(t.rules || []); el.checked ? r.add(k) : r.delete(k); patchTrade(t.id, { rules: [...r] }); render(); } break;
     case "tNotes": if (isInput) { const t = getTrade(S.openTrade); saveLater("trades", t.id, { ...t, notes: el.value }); } break;
     case "tNum": if (!isInput) { const t = getTrade(S.openTrade); const v = el.value === "" ? null : parseFloat(el.value); if (k === "net" && v == null) return; const patch = { [k]: v }; if (k === "net" && t.fxMissing) { patch.fxMissing = false; patch.currency = S.settings.currency; } patchTrade(t.id, patch); render(); } break;
+    case "btText": { const n = S.notes.find(x => x.id === el.dataset.id); if (!n) break; const bt = { ...(n.bt || {}), [k]: el.value };
+      if (k === "r" && isInput) saveLater("notes", n.id, { ...n, bt, updated: new Date().toISOString() });
+      else if (k === "day" && !isInput) { saveDoc("notes", n.id, { ...n, bt, title: String(n.title || "").startsWith("Backtest") ? btTitle(bt) : n.title, updated: new Date().toISOString() }); render(); }
+      break; }
     case "spText": if (isInput) { const n = S.notes.find(x => x.id === el.dataset.id); if (n) saveLater("notes", n.id, { ...n, sp: { ...(n.sp || {}), [k]: el.value }, updated: new Date().toISOString() }); } break;
     case "tShot": if (!isInput && el.files.length) uploadShots([...el.files]); break;
     case "pe": if (S.pbEdit) S.pbEdit[k] = el.value; break;
@@ -2421,7 +2460,7 @@ document.addEventListener("paste", e => {
       noteInsert(`<blockquote><b>Prime-Checkliste${ck.time ? " " + esc(ck.time) : ""}</b><br>${plain.split(/\r?\n/).slice(1).filter(l => l.trim()).map(l => esc(l.trim())).join("<br>")}</blockquote><p></p>`);
       for (const it of document.querySelectorAll(".ne-ed i")) if (/mit ⌘V hier einfügen/.test(it.textContent) && !it.querySelector("blockquote,img")) { const pp = it.parentNode; it.remove(); if (pp && pp.tagName === "P" && pp.parentNode && pp.parentNode.classList && pp.parentNode.classList.contains("ne-ed") && !pp.textContent.replace(/\u00a0/g, "").trim()) pp.remove(); }
       saveNoteBody();
-      setTimeout(() => { const n = S.notes.find(x => x.id === id); if (n) { saveDoc("notes", n.id, { ...n, kind: n.kind || "session", sp: stampAmpel({ ...(n.sp || {}), check: ck }), updated: new Date().toISOString() }); render(); toast(`Checkliste erkannt: Note ${ck.grade || "?"}`); } }, 1000);
+      setTimeout(() => { const n = S.notes.find(x => x.id === id); if (n && n.kind === "backtest") { saveDoc("notes", n.id, { ...n, bt: { ...(n.bt || {}), check: ck, grade: ["A", "B"].includes(ck.grade) ? ck.grade : "kein Setup" }, updated: new Date().toISOString() }); render(); toast(`Checkliste erkannt: Note ${ck.grade || "?"}`); return; } if (n) { saveDoc("notes", n.id, { ...n, kind: n.kind || "session", sp: stampAmpel({ ...(n.sp || {}), check: ck }), updated: new Date().toISOString() }); render(); toast(`Checkliste erkannt: Note ${ck.grade || "?"}`); } }, 1000);
       return;
     }
     const html = e.clipboardData?.getData("text/html");
@@ -2489,7 +2528,7 @@ async function uploadShots(files) {
 
 
 /* ========= Bilder-Import (Zip mit bilder-zuordnung.json) – v1.1 ========= */
-const APP_VERSION = "1.6.3 · 25.11.26"; /* Design: Icon-Leiste, Notizbaum, volle Breite */
+const APP_VERSION = "1.6.4 · 25.11.26"; /* Design: Icon-Leiste, Notizbaum, volle Breite */
 async function readZip(file) {
   const buf = new Uint8Array(await file.arrayBuffer()); const dv = new DataView(buf.buffer);
   let e = buf.length - 22; while (e >= 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
